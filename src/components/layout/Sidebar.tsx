@@ -5,24 +5,12 @@ import {
   Package, 
   Truck, 
   Users, 
-  BarChart3, 
-  UserCog, 
-  Settings, 
-  RefreshCw,
+  Settings,
   ChevronDown,
   ChevronRight,
-  ClipboardList,
-  RotateCcw,
   Tags,
-  Sliders,
-  PackageSearch,
-  FileText,
-  TrendingUp,
-  Receipt,
-  DollarSign,
-  Wallet,
-  UserCheck,
-  ArrowRightLeft
+  ChevronLeft,
+  Menu
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { AppContext, Route } from '../../App';
@@ -80,6 +68,7 @@ const menuItems: MenuItem[] = [
 export const Sidebar: React.FC = () => {
   const { currentRoute, navigateTo } = useContext(AppContext);
   const [expandedItems, setExpandedItems] = useState<string[]>(['products']);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleExpand = (itemId: string) => {
     setExpandedItems((prev) =>
@@ -89,7 +78,14 @@ export const Sidebar: React.FC = () => {
 
   const handleItemClick = (item: MenuItem) => {
     if (item.children) {
-      toggleExpand(item.id);
+      if (!isCollapsed) {
+        toggleExpand(item.id);
+      } else {
+        // If collapsed and has children, navigate to first child
+        if (item.children[0]?.route) {
+          navigateTo(item.children[0].route);
+        }
+      }
     } else if (item.route) {
       navigateTo(item.route);
     }
@@ -118,30 +114,36 @@ export const Sidebar: React.FC = () => {
             level > 0 && "pl-6",
             isActive && !hasChildren
               ? "bg-sidebar-primary text-sidebar-primary-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            isCollapsed && "justify-center"
           )}
+          title={isCollapsed ? item.label : undefined}
         >
           <Icon className="h-5 w-5 flex-shrink-0" />
-          <span 
-            className="flex-1 text-left"
-            style={{ 
-              fontSize: 'var(--text-body-m)',
-              fontWeight: 'var(--font-weight-medium)',
-              lineHeight: 'var(--line-height-normal)'
-            }}
-          >
-            {item.label}
-          </span>
-          {hasChildren && (
-            isExpanded ? (
-              <ChevronDown className="h-4 w-4 flex-shrink-0" />
-            ) : (
-              <ChevronRight className="h-4 w-4 flex-shrink-0" />
-            )
+          {!isCollapsed && (
+            <>
+              <span 
+                className="flex-1 text-left"
+                style={{ 
+                  fontSize: 'var(--text-body-m)',
+                  fontWeight: 'var(--font-weight-medium)',
+                  lineHeight: 'var(--line-height-normal)'
+                }}
+              >
+                {item.label}
+              </span>
+              {hasChildren && (
+                isExpanded ? (
+                  <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                )
+              )}
+            </>
           )}
         </button>
         
-        {hasChildren && isExpanded && (
+        {!isCollapsed && hasChildren && isExpanded && (
           <div className="mt-1 space-y-1">
             {item.children!.map((child) => {
               const ChildIcon = child.icon;
@@ -176,23 +178,38 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-[240px] h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0 z-50">
+    <aside className={cn(
+      "h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0 z-50 transition-all duration-300",
+      isCollapsed ? "w-[70px]" : "w-[240px]"
+    )}>
       {/* Logo/Brand */}
-      <div className="h-16 px-6 flex items-center border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <ShoppingCart className="h-5 w-5 text-sidebar-primary-foreground" />
+      <div className="h-16 px-4 flex items-center justify-between border-b border-sidebar-border">
+        {!isCollapsed && (
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
+              <ShoppingCart className="h-5 w-5 text-sidebar-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-sidebar-foreground" style={{ 
+                fontSize: 'var(--text-subtitle-s)',
+                fontWeight: 'var(--font-weight-semibold)',
+                lineHeight: 'var(--line-height-tight)'
+              }}>
+                POS System
+              </h1>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sidebar-foreground" style={{ 
-              fontSize: 'var(--text-subtitle-s)',
-              fontWeight: 'var(--font-weight-semibold)',
-              lineHeight: 'var(--line-height-tight)'
-            }}>
-              POS System
-            </h1>
-          </div>
-        </div>
+        )}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="h-8 w-8 rounded-lg hover:bg-sidebar-accent flex items-center justify-center transition-colors"
+        >
+          {isCollapsed ? (
+            <Menu className="h-5 w-5 text-sidebar-foreground" />
+          ) : (
+            <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
+          )}
+        </button>
       </div>
 
       {/* Navigation Menu */}
@@ -203,23 +220,25 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer/Version Info */}
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="text-center space-y-1">
-          <p className="text-sidebar-foreground/60" style={{ 
-            fontSize: 'var(--text-caption)',
-            lineHeight: 'var(--line-height-normal)'
-          }}>
-            Simple POS v1.0.0
-          </p>
-          <p className="text-sidebar-foreground/40" style={{ 
-            fontSize: 'var(--text-overline)',
-            lineHeight: 'var(--line-height-normal)',
-            letterSpacing: '0.05em'
-          }}>
-            1920×1080
-          </p>
+      {!isCollapsed && (
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="text-center space-y-1">
+            <p className="text-sidebar-foreground/60" style={{ 
+              fontSize: 'var(--text-caption)',
+              lineHeight: 'var(--line-height-normal)'
+            }}>
+              Simple POS v1.0.0
+            </p>
+            <p className="text-sidebar-foreground/40" style={{ 
+              fontSize: 'var(--text-overline)',
+              lineHeight: 'var(--line-height-normal)',
+              letterSpacing: '0.05em'
+            }}>
+              1920×1080
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 };
