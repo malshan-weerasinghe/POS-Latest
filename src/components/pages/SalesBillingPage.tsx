@@ -17,6 +17,7 @@ interface CartItem {
   id: string;
   name: string;
   sku: string;
+  costPrice: number;
   price: number;
   quantity: number;
   discount: number;
@@ -24,11 +25,11 @@ interface CartItem {
 }
 
 const mockProducts = [
-  { id: '1', name: 'Premium Rice 5kg', sku: 'GRC-001', price: 400, stock: 150, category: 'Groceries' },
-  { id: '2', name: 'Cooking Oil 1L', sku: 'GRC-002', price: 240, stock: 200, category: 'Groceries' },
-  { id: '3', name: 'Sugar 1kg', sku: 'GRC-003', price: 52, stock: 300, category: 'Groceries' },
-  { id: '4', name: 'Tea Powder 500g', sku: 'BEV-001', price: 120, stock: 180, category: 'Beverages' },
-  { id: '5', name: 'Wheat Flour 10kg', sku: 'GRC-004', price: 400, stock: 120, category: 'Groceries' },
+  { id: '1', name: 'Premium Rice 5kg', sku: 'GRC-001', costPrice: 300, price: 400, stock: 150, category: 'Groceries' },
+  { id: '2', name: 'Cooking Oil 1L', sku: 'GRC-002', costPrice: 180, price: 240, stock: 200, category: 'Groceries' },
+  { id: '3', name: 'Sugar 1kg', sku: 'GRC-003', costPrice: 40, price: 52, stock: 300, category: 'Groceries' },
+  { id: '4', name: 'Tea Powder 500g', sku: 'BEV-001', costPrice: 90, price: 120, stock: 180, category: 'Beverages' },
+  { id: '5', name: 'Wheat Flour 10kg', sku: 'GRC-004', costPrice: 320, price: 400, stock: 120, category: 'Groceries' },
 ];
 
 export const SalesBillingPage: React.FC = () => {
@@ -57,6 +58,7 @@ export const SalesBillingPage: React.FC = () => {
           id: product.id,
           name: product.name,
           sku: product.sku,
+          costPrice: product.costPrice,
           price: product.price,
           quantity: 1,
           discount: 0,
@@ -76,7 +78,7 @@ export const SalesBillingPage: React.FC = () => {
   };
 
   const updateDiscount = (id: string, discount: number) => {
-    setCart(cart.map((item) => (item.id === id ? { ...item, discount: Math.max(0, Math.min(100, discount)) } : item)));
+    setCart(cart.map((item) => (item.id === id ? { ...item, discount: Math.max(0, discount) } : item)));
   };
 
   const removeFromCart = (id: string) => {
@@ -85,19 +87,17 @@ export const SalesBillingPage: React.FC = () => {
 
   const calculateItemTotal = (item: CartItem) => {
     const subtotal = item.price * item.quantity;
-    const discountAmount = (subtotal * item.discount) / 100;
-    const afterDiscount = subtotal - discountAmount;
+    const afterDiscount = subtotal - item.discount;
     const taxAmount = (afterDiscount * item.tax) / 100;
     return afterDiscount + taxAmount;
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const totalDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity * item.discount) / 100, 0);
+  const totalDiscount = cart.reduce((sum, item) => sum + item.discount, 0);
   const taxableAmount = subtotal - totalDiscount;
   const totalTax = cart.reduce((sum, item) => {
     const itemSubtotal = item.price * item.quantity;
-    const itemDiscount = (itemSubtotal * item.discount) / 100;
-    return sum + ((itemSubtotal - itemDiscount) * item.tax) / 100;
+    return sum + ((itemSubtotal - item.discount) * item.tax) / 100;
   }, 0);
   const grandTotal = taxableAmount + totalTax;
 
@@ -118,7 +118,7 @@ export const SalesBillingPage: React.FC = () => {
     
     // Show success toast
     toast.success('Payment Completed!', {
-      description: `Invoice generated for ₹${grandTotal.toFixed(2)}`,
+      description: `Invoice generated for Rs ${grandTotal.toFixed(2)}`,
     });
     
     // Reset
@@ -146,17 +146,6 @@ export const SalesBillingPage: React.FC = () => {
       breadcrumbs={[{ label: 'Sales' }, { label: 'Billing' }]}
       title="Sales & Billing"
       subtitle="Create new sales invoice"
-      actions={
-        <>
-          <Button variant="outline" size="sm" onClick={holdBill} disabled={cart.length === 0}>
-            <Save className="h-4 w-4 mr-2" />
-            Hold Bill
-          </Button>
-          <Button variant="outline" size="sm">
-            Resume Bill
-          </Button>
-        </>
-      }
     >
       <div className="grid grid-cols-3 gap-6">
         {/* Left: Product Selection & Cart */}
@@ -191,7 +180,7 @@ export const SalesBillingPage: React.FC = () => {
                             {product.sku} • Stock: {product.stock}
                           </p>
                         </div>
-                        <p className="font-medium">₹{product.price}</p>
+                        <p className="font-medium">Rs {product.price}</p>
                       </button>
                     ))
                   ) : (
@@ -227,9 +216,10 @@ export const SalesBillingPage: React.FC = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Item</TableHead>
-                        <TableHead className="w-32">Price</TableHead>
+                        <TableHead className="w-28">Cost</TableHead>
+                        <TableHead className="w-28">Price</TableHead>
                         <TableHead className="w-36">Quantity</TableHead>
-                        <TableHead className="w-24">Disc%</TableHead>
+                        <TableHead className="w-24">Disc</TableHead>
                         <TableHead className="w-28 text-right">Total</TableHead>
                         <TableHead className="w-12"></TableHead>
                       </TableRow>
@@ -245,7 +235,8 @@ export const SalesBillingPage: React.FC = () => {
                               </p>
                             </div>
                           </TableCell>
-                          <TableCell>₹{item.price}</TableCell>
+                          <TableCell>Rs {item.costPrice}</TableCell>
+                          <TableCell>Rs {item.price}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button
@@ -274,11 +265,10 @@ export const SalesBillingPage: React.FC = () => {
                               onChange={(e) => updateDiscount(item.id, parseFloat(e.target.value) || 0)}
                               className="h-8 w-20"
                               min="0"
-                              max="100"
                             />
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            ₹{calculateItemTotal(item).toFixed(2)}
+                            Rs {calculateItemTotal(item).toFixed(2)}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -332,21 +322,21 @@ export const SalesBillingPage: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
+                  <span>Rs {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Discount</span>
-                  <span className="text-destructive">-₹{totalDiscount.toFixed(2)}</span>
+                  <span className="text-destructive">-Rs {totalDiscount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax (5%)</span>
-                  <span>₹{totalTax.toFixed(2)}</span>
+                  <span>Rs {totalTax.toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Grand Total</span>
                   <span className="text-primary" style={{ fontSize: 'var(--text-headline-m)' }}>
-                    ₹{grandTotal.toFixed(2)}
+                    Rs {grandTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -403,7 +393,7 @@ export const SalesBillingPage: React.FC = () => {
           {/* Action Buttons */}
           <div className="space-y-2">
             <Button className="w-full h-12" size="lg" onClick={handlePayment} disabled={cart.length === 0}>
-              Complete Sale - ₹{grandTotal.toFixed(2)}
+              Complete Sale - Rs {grandTotal.toFixed(2)}
             </Button>
             <Button variant="outline" className="w-full" size="sm">
               <Printer className="h-4 w-4 mr-2" />
@@ -439,7 +429,7 @@ export const SalesBillingPage: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>Total Amount</Label>
-              <Input value={`₹${grandTotal.toFixed(2)}`} disabled />
+              <Input value={`Rs ${grandTotal.toFixed(2)}`} disabled />
             </div>
             {paymentMethod === 'cash' && (
               <>
@@ -458,7 +448,7 @@ export const SalesBillingPage: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Change to Return:</span>
                       <span className="text-primary font-medium">
-                        ₹{(parseFloat(amountReceived) - grandTotal).toFixed(2)}
+                        Rs {(parseFloat(amountReceived) - grandTotal).toFixed(2)}
                       </span>
                     </div>
                   </div>

@@ -46,34 +46,22 @@ const menuItems: MenuItem[] = [
     id: 'sales', 
     label: 'Sales & Billing', 
     icon: ShoppingCart,
-    children: [
-      { id: 'sales-billing', label: 'New Sale', icon: ShoppingCart, route: 'sales-billing' },
-      { id: 'hold-bills', label: 'Hold Bills', icon: ClipboardList, route: 'hold-bills' },
-      { id: 'sales-return', label: 'Sales Return', icon: RotateCcw, route: 'sales-return' },
-    ]
+    route: 'sales-billing'
   },
   { 
-    id: 'inventory', 
-    label: 'Items & Inventory', 
+    id: 'products', 
+    label: 'Products', 
     icon: Package,
     children: [
       { id: 'items-list', label: 'Items List', icon: Package, route: 'items-list' },
       { id: 'categories', label: 'Categories', icon: Tags, route: 'categories' },
-      { id: 'stock-adjustment', label: 'Stock Adjustment', icon: Sliders, route: 'stock-adjustment' },
-      { id: 'inventory-batches', label: 'Batches & Expiry', icon: PackageSearch, route: 'inventory-batches' },
-      { id: 'stock-movement-log', label: 'Movement Log', icon: ArrowRightLeft, route: 'stock-movement-log' },
     ]
   },
   { 
     id: 'suppliers', 
-    label: 'Suppliers & GRN', 
+    label: 'Suppliers', 
     icon: Truck,
-    children: [
-      { id: 'suppliers-list', label: 'Suppliers', icon: Truck, route: 'suppliers-list' },
-      { id: 'grn-create', label: 'Create GRN', icon: FileText, route: 'grn-create' },
-      { id: 'grn-approval', label: 'GRN Approval', icon: ClipboardList, route: 'grn-approval' },
-      { id: 'supplier-ledger', label: 'Supplier Ledger', icon: Receipt, route: 'supplier-ledger' },
-    ]
+    route: 'suppliers-list'
   },
   { 
     id: 'customers', 
@@ -82,43 +70,16 @@ const menuItems: MenuItem[] = [
     route: 'customers-list'
   },
   { 
-    id: 'reports', 
-    label: 'Reports & Analytics', 
-    icon: BarChart3,
-    children: [
-      { id: 'reports-overview', label: 'All Reports', icon: BarChart3, route: 'reports-overview' },
-      { id: 'daily-summary', label: 'Daily Summary', icon: FileText, route: 'daily-summary' },
-      { id: 'profit-loss', label: 'Profit & Loss', icon: TrendingUp, route: 'profit-loss' },
-      { id: 'expense-entry', label: 'Expense Entry', icon: DollarSign, route: 'expense-entry' },
-      { id: 'daily-cash-book', label: 'Daily Cash Book', icon: Wallet, route: 'daily-cash-book' },
-    ]
-  },
-  { 
-    id: 'users', 
-    label: 'User Management', 
-    icon: UserCog,
-    children: [
-      { id: 'user-management', label: 'Users & Roles', icon: UserCog, route: 'user-management' },
-      { id: 'employee-attendance', label: 'Attendance', icon: UserCheck, route: 'employee-attendance' },
-    ]
-  },
-  { 
     id: 'settings', 
     label: 'Settings', 
     icon: Settings,
     route: 'settings'
   },
-  { 
-    id: 'sync', 
-    label: 'Sync Status', 
-    icon: RefreshCw,
-    route: 'sync-center'
-  },
 ];
 
 export const Sidebar: React.FC = () => {
   const { currentRoute, navigateTo } = useContext(AppContext);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['sales', 'inventory', 'suppliers', 'reports']);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['products']);
 
   const toggleExpand = (itemId: string) => {
     setExpandedItems((prev) =>
@@ -242,37 +203,13 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer/Version Info */}
-      <div className="p-4 border-t border-sidebar-border space-y-3">
-        <button
-          onClick={() => navigateTo('index')}
-          className="w-full px-3 py-2 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent text-sidebar-accent-foreground transition-colors"
-        >
-          <span style={{ 
-            fontSize: 'var(--text-body-s)',
-            fontWeight: 'var(--font-weight-medium)',
-            lineHeight: 'var(--line-height-normal)'
-          }}>
-            🏠 Home
-          </span>
-        </button>
-        <button
-          onClick={() => navigateTo('component-library')}
-          className="w-full px-3 py-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent text-sidebar-accent-foreground transition-colors"
-        >
-          <span style={{ 
-            fontSize: 'var(--text-body-s)',
-            fontWeight: 'var(--font-weight-medium)',
-            lineHeight: 'var(--line-height-normal)'
-          }}>
-            📚 Components
-          </span>
-        </button>
+      <div className="p-4 border-t border-sidebar-border">
         <div className="text-center space-y-1">
           <p className="text-sidebar-foreground/60" style={{ 
             fontSize: 'var(--text-caption)',
             lineHeight: 'var(--line-height-normal)'
           }}>
-            Version 1.0.0
+            Simple POS v1.0.0
           </p>
           <p className="text-sidebar-foreground/40" style={{ 
             fontSize: 'var(--text-overline)',
