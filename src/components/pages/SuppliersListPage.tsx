@@ -161,7 +161,6 @@ export const SuppliersListPage: React.FC = () => {
 
   return (
     <PageTemplate
-      breadcrumbs={[{ label: 'Suppliers' }, { label: 'All Suppliers' }]}
       title="Suppliers"
       subtitle="Manage your supplier database"
       actions={

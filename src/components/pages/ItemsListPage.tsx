@@ -246,7 +246,6 @@ export const ItemsListPage: React.FC = () => {
 
   return (
     <PageTemplate
-      breadcrumbs={[{ label: 'Inventory' }, { label: 'Items' }]}
       title="Items & Inventory"
       subtitle="Manage your product catalog"
       actions={

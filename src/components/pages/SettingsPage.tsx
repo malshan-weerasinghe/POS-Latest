@@ -35,7 +35,6 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <PageTemplate
-      breadcrumbs={[{ label: 'Settings' }]}
       title="Settings"
       subtitle="Configure your POS system"
       actions={

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
 import { AppContext } from '../../App';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface CartItem {
   id: string;
@@ -142,11 +142,7 @@ export const SalesBillingPage: React.FC = () => {
   };
 
   return (
-    <PageTemplate
-      breadcrumbs={[{ label: 'Sales' }, { label: 'Billing' }]}
-      title="Sales & Billing"
-      subtitle="Create new sales invoice"
-    >
+    <PageTemplate hideHeader>
       <div className="grid grid-cols-3 gap-6">
         {/* Left: Product Selection & Cart */}
         <div className="col-span-2 space-y-4">
@@ -291,7 +287,7 @@ export const SalesBillingPage: React.FC = () => {
         </div>
 
         {/* Right: Customer & Payment */}
-        <div className="space-y-4">
+        <div className="sticky top-8 h-[calc(100vh-8rem)] overflow-y-auto space-y-4">
           {/* Customer */}
           <Card>
             <CardHeader>
@@ -339,6 +335,21 @@ export const SalesBillingPage: React.FC = () => {
                     Rs {grandTotal.toFixed(2)}
                   </span>
                 </div>
+                {paymentMethod === 'cash' && amountReceived && parseFloat(amountReceived) >= grandTotal && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Amount Received</span>
+                      <span>Rs {parseFloat(amountReceived).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-primary">Change</span>
+                      <span className="text-primary font-semibold" style={{ fontSize: 'var(--text-headline-s)' }}>
+                        Rs {(parseFloat(amountReceived) - grandTotal).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -348,7 +359,7 @@ export const SalesBillingPage: React.FC = () => {
             <CardHeader>
               <CardTitle>Payment Method</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant={paymentMethod === 'cash' ? 'default' : 'outline'}
@@ -368,25 +379,22 @@ export const SalesBillingPage: React.FC = () => {
                   <CreditCard className="h-5 w-5" />
                   <span style={{ fontSize: 'var(--text-body-s)' }}>Card</span>
                 </Button>
-                <Button
-                  variant={paymentMethod === 'upi' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setPaymentMethod('upi')}
-                  className="h-16 flex flex-col items-center gap-1"
-                >
-                  <Smartphone className="h-5 w-5" />
-                  <span style={{ fontSize: 'var(--text-body-s)' }}>UPI</span>
-                </Button>
-                <Button
-                  variant={paymentMethod === 'credit' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setPaymentMethod('credit')}
-                  className="h-16 flex flex-col items-center gap-1"
-                >
-                  <Wallet className="h-5 w-5" />
-                  <span style={{ fontSize: 'var(--text-body-s)' }}>Credit</span>
-                </Button>
               </div>
+              
+              {/* Cash Payment Input */}
+              {paymentMethod === 'cash' && (
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-2">
+                    <Label>Amount Received</Label>
+                    <Input
+                      type="number"
+                      placeholder="Enter amount"
+                      value={amountReceived}
+                      onChange={(e) => setAmountReceived(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

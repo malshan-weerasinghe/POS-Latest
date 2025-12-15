@@ -83,7 +83,6 @@ export const DashboardPage: React.FC = () => {
   
   return (
     <PageTemplate
-      breadcrumbs={[{ label: 'Dashboard' }]}
       title="Dashboard"
       subtitle="Overview of your store performance"
       actions={

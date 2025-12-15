@@ -130,7 +130,6 @@ export const CategoriesPage: React.FC = () => {
 
   return (
     <PageTemplate
-      breadcrumbs={[{ label: 'Inventory' }, { label: 'Categories' }]}
       title="Categories"
       subtitle="Manage product categories"
       actions={

@@ -180,7 +180,6 @@ export const CustomersListPage: React.FC = () => {
 
   return (
     <PageTemplate
-      breadcrumbs={[{ label: 'Customers' }, { label: 'All Customers' }]}
       title="Customers"
       subtitle="Manage your customer database"
       actions={
