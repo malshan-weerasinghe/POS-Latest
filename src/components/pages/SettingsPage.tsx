@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
-import { Save, Upload, Store, FileText, Calculator, Printer, Bell, Database } from 'lucide-react';
+import { Save, Upload, Store, FileText, Calculator, Printer, Bell, Database, Eye } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -10,6 +10,7 @@ import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Separator } from '../ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 
 export const SettingsPage: React.FC = () => {
   const [storeName, setStoreName] = useState('My Store');
@@ -17,11 +18,17 @@ export const SettingsPage: React.FC = () => {
   const [storePhone, setStorePhone] = useState('+91 98765 43210');
   const [storeEmail, setStoreEmail] = useState('store@email.com');
   const [gstNumber, setGstNumber] = useState('22AAAAA0000A1Z5');
+  const [storePhone2, setStorePhone2] = useState('');
   
   const [taxRate, setTaxRate] = useState('5');
   const [currency, setCurrency] = useState('INR');
   const [invoicePrefix, setInvoicePrefix] = useState('INV-');
   const [receiptFooter, setReceiptFooter] = useState('Thank you for your business!');
+  const [warrantyTerms, setWarrantyTerms] = useState(`1. This original bill is mandatory for any warranty claims.
+2. Warranty covers hardware defects ONLY.
+3. Warranty is VOID in case of physical damage, water/liquid damage, or unauthorized repairs.
+4. No cash refunds. Exchange within 7 days for faulty devices only.`);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   
   const [autoPrint, setAutoPrint] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -55,10 +62,6 @@ export const SettingsPage: React.FC = () => {
           <TabsTrigger value="billing">
             <FileText className="h-4 w-4 mr-2" />
             Billing
-          </TabsTrigger>
-          <TabsTrigger value="tax">
-            <Calculator className="h-4 w-4 mr-2" />
-            Tax & Currency
           </TabsTrigger>
           <TabsTrigger value="receipt">
             <Printer className="h-4 w-4 mr-2" />
@@ -160,11 +163,12 @@ export const SettingsPage: React.FC = () => {
               </div>
               <Separator />
               <div className="space-y-2">
-                <Label>Invoice Terms & Conditions</Label>
+                <Label>Warranty Terms & Conditions</Label>
                 <Textarea 
-                  placeholder="Enter terms and conditions to appear on invoices"
-                  rows={4}
-                  defaultValue="1. Goods once sold will not be taken back.&#10;2. All disputes subject to local jurisdiction."
+                  value={warrantyTerms}
+                  onChange={(e) => setWarrantyTerms(e.target.value)}
+                  rows={8}
+                  placeholder="Enter warranty terms and conditions..."
                 />
               </div>
             </CardContent>
@@ -219,141 +223,148 @@ export const SettingsPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* Tax & Currency */}
-        <TabsContent value="tax" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tax Configuration</CardTitle>
-              <CardDescription>Set up tax rates for your products</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Default Tax Rate (%)</Label>
-                  <Input 
-                    type="number" 
-                    value={taxRate} 
-                    onChange={(e) => setTaxRate(e.target.value)}
-                    min="0"
-                    max="100"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tax Type</Label>
-                  <Select defaultValue="gst">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gst">GST</SelectItem>
-                      <SelectItem value="vat">VAT</SelectItem>
-                      <SelectItem value="sales">Sales Tax</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Include Tax in Price</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                    Display prices inclusive of tax
-                  </p>
-                </div>
-                <Switch />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Currency Settings</CardTitle>
-              <CardDescription>Configure currency and number formats</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="INR">₹ Indian Rupee (INR)</SelectItem>
-                      <SelectItem value="USD">$ US Dollar (USD)</SelectItem>
-                      <SelectItem value="EUR">€ Euro (EUR)</SelectItem>
-                      <SelectItem value="GBP">£ British Pound (GBP)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Decimal Places</Label>
-                  <Select defaultValue="2">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">0</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Receipt Settings */}
         <TabsContent value="receipt" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Receipt Format</CardTitle>
-              <CardDescription>Customize your receipt layout and content</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Receipt Width</Label>
-                <Select defaultValue="80mm">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="58mm">58mm (Small)</SelectItem>
-                    <SelectItem value="80mm">80mm (Standard)</SelectItem>
-                    <SelectItem value="a4">A4 (Full Page)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Footer Message</Label>
-                <Textarea 
-                  value={receiptFooter}
-                  onChange={(e) => setReceiptFooter(e.target.value)}
-                  rows={3}
-                  placeholder="Thank you message"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Show Barcode</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                    Display barcode on receipt
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Show Customer Details</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                    Include customer name and phone
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left Side - Settings Form */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Footer Message</CardTitle>
+                  <CardDescription>Message that appears at the bottom of the receipt</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Footer Text</Label>
+                    <Textarea 
+                      value={receiptFooter}
+                      onChange={(e) => setReceiptFooter(e.target.value)}
+                      rows={3}
+                      placeholder="Thank You For Your Purchase!"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Side - Live Preview */}
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Receipt Preview (80mm)</CardTitle>
+                  <CardDescription>Live preview of your receipt</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div style={{ 
+                    fontFamily: '"Courier New", monospace', 
+                    fontSize: '11px', 
+                    lineHeight: '1.3',
+                    padding: '10px',
+                    border: '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    background: 'white',
+                    maxHeight: '600px',
+                    overflowY: 'auto',
+                    width: '302px',
+                    margin: '0 auto'
+                  }}>
+                    {/* Header */}
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>** {storeName.toUpperCase()} **</div>
+                      <div style={{ fontSize: '11px', marginTop: '2px' }}>Premium Pre-Owned Devices</div>
+                      <div style={{ fontSize: '11px' }}>{storeAddress}</div>
+                      <div style={{ fontSize: '11px' }}>Ph: {storePhone}{storePhone2 && ` / ${storePhone2}`}</div>
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {/* Bill Info */}
+                    <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                        <span>Time: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                      </div>
+                      <div>Bill No: #{invoicePrefix}12345</div>
+                      <div>Cashier: Admin</div>
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {/* Sample Customer */}
+                    <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+                      <div>Customer: John Doe</div>
+                      <div>Phone: 071-1234567</div>
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {/* Items Header */}
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ width: '20px' }}>Ln</span>
+                        <span style={{ flex: 1 }}>Item</span>
+                        <span style={{ width: '60px', textAlign: 'right' }}>Price</span>
+                        <span style={{ width: '30px', textAlign: 'center' }}>Qty</span>
+                        <span style={{ width: '60px', textAlign: 'right' }}>Amount</span>
+                      </div>
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {/* Sample Item */}
+                    <div style={{ fontSize: '11px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ width: '20px' }}>01</span>
+                        <span style={{ flex: 1 }}>PHN-001</span>
+                        <span style={{ width: '60px', textAlign: 'right' }}>165000.00</span>
+                        <span style={{ width: '30px', textAlign: 'center' }}>1</span>
+                        <span style={{ width: '60px', textAlign: 'right' }}>165000.00</span>
+                      </div>
+                      <div style={{ marginLeft: '20px', fontSize: '11px' }}>iPhone 13 Pro (128GB)</div>
+                      <div style={{ marginLeft: '20px', fontSize: '10px' }}>*6 months warranty</div>
+                    </div>
+
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {/* Totals */}
+                    <div style={{ fontSize: '11px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                        <span>Subtotal:</span>
+                        <span>165000.00</span>
+                      </div>
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {/* Grand Total */}
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', margin: '5px 0' }}>
+                      *** GRAND TOTAL:      LKR 165000.00 ***
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {/* Payment */}
+                    <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>PAID BY: CASH</span>
+                        <span>165000.00</span>
+                      </div>
+                    </div>
+
+                    {/* Warranty Terms */}
+                    <div style={{ borderTop: '2px solid #000', borderBottom: '2px solid #000', margin: '8px 0', padding: '5px 0' }}>
+                      <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
+                        WARRANTY TERMS
+                      </div>
+                      <div style={{ fontSize: '9px', lineHeight: '1.3', whiteSpace: 'pre-line' }}>
+                        {warrantyTerms}
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{ textAlign: 'center', fontSize: '11px', marginTop: '8px', whiteSpace: 'pre-line' }}>
+                      <div style={{ fontWeight: 'bold' }}>{receiptFooter}</div>
+                      <div style={{ marginTop: '2px' }}>Please Visit Again.</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Preferences */}

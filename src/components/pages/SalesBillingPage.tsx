@@ -137,7 +137,7 @@ export const SalesBillingPage: React.FC = () => {
     const itemSubtotal = item.price * item.quantity;
     return sum + ((itemSubtotal - item.discount) * item.tax) / 100;
   }, 0);
-  const grandTotal = taxableAmount + totalTax;
+  const grandTotal = taxableAmount; // No tax added
 
   const getWarrantyExpiry = (months: number) => {
     if (months === 0) return null;
@@ -629,10 +629,6 @@ export const SalesBillingPage: React.FC = () => {
                   <span className="text-muted-foreground">Discount</span>
                   <span className="text-destructive">-Rs {totalDiscount.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tax (5%)</span>
-                  <span>Rs {totalTax.toFixed(2)}</span>
-                </div>
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Grand Total</span>
@@ -951,10 +947,6 @@ export const SalesBillingPage: React.FC = () => {
                   <span>-{totalDiscount.toFixed(2)}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                <span>Tax (5%):</span>
-                <span>{totalTax.toFixed(2)}</span>
-              </div>
             </div>
             <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
 
