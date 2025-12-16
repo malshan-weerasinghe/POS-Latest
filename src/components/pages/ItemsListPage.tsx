@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
+import { toast } from 'sonner';
 
 interface Item {
   id: string;
@@ -100,6 +101,21 @@ export const ItemsListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+  
+  const [categories, setCategories] = useState(['Groceries', 'Beverages', 'Snacks', 'Personal Care']);
+  const [suppliers, setSuppliers] = useState(['ABC Wholesale', 'XYZ Traders', 'PQR Distributors']);
+  
+  const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
+  const [supplierFormData, setSupplierFormData] = useState({
+    name: '',
+    contactPerson: '',
+    phone: '',
+    email: '',
+    address: '',
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -143,6 +159,34 @@ export const ItemsListPage: React.FC = () => {
       supplier: '',
       barcode: '',
     });
+  };
+
+  const handleAddCategory = () => {
+    if (!categoryFormData.name) {
+      toast.error('Category name is required');
+      return;
+    }
+    
+    setCategories([...categories, categoryFormData.name]);
+    setFormData({ ...formData, category: categoryFormData.name });
+    toast.success('Category added successfully');
+    
+    setCategoryFormData({ name: '', description: '' });
+    setShowAddCategoryModal(false);
+  };
+
+  const handleAddSupplier = () => {
+    if (!supplierFormData.name) {
+      toast.error('Supplier name is required');
+      return;
+    }
+    
+    setSuppliers([...suppliers, supplierFormData.name]);
+    setFormData({ ...formData, supplier: supplierFormData.name });
+    toast.success('Supplier added successfully');
+    
+    setSupplierFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+    setShowAddSupplierModal(false);
   };
 
   const handleAddItem = () => {
@@ -456,30 +500,55 @@ export const ItemsListPage: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>Category *</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Groceries">Groceries</SelectItem>
-                  <SelectItem value="Beverages">Beverages</SelectItem>
-                  <SelectItem value="Snacks">Snacks</SelectItem>
-                  <SelectItem value="Personal Care">Personal Care</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowAddCategoryModal(true)}
+                  title="Add new category"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Supplier *</Label>
-              <Select value={formData.supplier} onValueChange={(value) => setFormData({ ...formData, supplier: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ABC Wholesale">ABC Wholesale</SelectItem>
-                  <SelectItem value="XYZ Traders">XYZ Traders</SelectItem>
-                  <SelectItem value="PQR Distributors">PQR Distributors</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={formData.supplier} onValueChange={(value) => setFormData({ ...formData, supplier: value })}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select supplier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((sup) => (
+                      <SelectItem key={sup} value={sup}>
+                        {sup}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowAddSupplierModal(true)}
+                  title="Add new supplier"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Stock Quantity *</Label>
@@ -530,6 +599,123 @@ export const ItemsListPage: React.FC = () => {
             </Button>
             <Button onClick={handleSaveItem}>
               {editingItem ? 'Update Item' : 'Add Item'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Category Modal */}
+      <Dialog open={showAddCategoryModal} onOpenChange={setShowAddCategoryModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Category</DialogTitle>
+            <DialogDescription>
+              Create a new product category
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Category Name *</Label>
+              <Input
+                value={categoryFormData.name}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                placeholder="Enter category name"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={categoryFormData.description}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                placeholder="Enter category description"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddCategoryModal(false);
+                setCategoryFormData({ name: '', description: '' });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddCategory}>
+              Add Category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Supplier Modal */}
+      <Dialog open={showAddSupplierModal} onOpenChange={setShowAddSupplierModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Supplier</DialogTitle>
+            <DialogDescription>
+              Enter details for the new supplier
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Supplier Name *</Label>
+              <Input
+                value={supplierFormData.name}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
+                placeholder="Enter supplier name"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Contact Person</Label>
+              <Input
+                value={supplierFormData.contactPerson}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, contactPerson: e.target.value })}
+                placeholder="Enter contact person name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone Number</Label>
+              <Input
+                value={supplierFormData.phone}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
+                placeholder="07x xxx xxxx"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email Address</Label>
+              <Input
+                type="email"
+                value={supplierFormData.email}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
+                placeholder="supplier@email.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Textarea
+                value={supplierFormData.address}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, address: e.target.value })}
+                placeholder="Enter complete address"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddSupplierModal(false);
+                setSupplierFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddSupplier}>
+              Add Supplier
             </Button>
           </DialogFooter>
         </DialogContent>

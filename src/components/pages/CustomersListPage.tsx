@@ -2,11 +2,12 @@ import React, { useState, useContext } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Plus, Download, Upload, Search, Edit2, Eye, Phone, Mail, MapPin, Star } from 'lucide-react';
+import { Plus, Download, Upload, Search, Edit2, Trash2, Phone, Mail, MapPin, Star } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { AppContext } from '../../App';
@@ -87,10 +88,11 @@ export const CustomersListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     phone: '',
     email: '',
     address: '',
@@ -112,7 +114,8 @@ export const CustomersListPage: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       phone: '',
       email: '',
       address: '',
@@ -127,8 +130,12 @@ export const CustomersListPage: React.FC = () => {
 
   const handleEditCustomer = (customer: Customer) => {
     setEditingCustomer(customer);
+    const nameParts = customer.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
     setFormData({
-      name: customer.name,
+      firstName,
+      lastName,
       phone: customer.phone,
       email: customer.email,
       address: customer.address,
@@ -143,7 +150,10 @@ export const CustomersListPage: React.FC = () => {
           customer.id === editingCustomer.id
             ? {
                 ...customer,
-                ...formData,
+                name: `${formData.firstName} ${formData.lastName}`.trim(),
+                phone: formData.phone,
+                email: formData.email,
+                address: formData.address,
               }
             : customer
         )
@@ -151,7 +161,10 @@ export const CustomersListPage: React.FC = () => {
     } else {
       const newCustomer: Customer = {
         id: Date.now().toString(),
-        ...formData,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
         loyaltyPoints: 0,
         totalPurchases: 0,
         lastPurchase: new Date().toISOString().split('T')[0],
@@ -161,6 +174,13 @@ export const CustomersListPage: React.FC = () => {
     }
     setShowAddModal(false);
     resetForm();
+  };
+
+  const handleDeleteCustomer = () => {
+    if (deletingCustomer) {
+      setCustomers(customers.filter((c) => c.id !== deletingCustomer.id));
+      setDeletingCustomer(null);
+    }
   };
 
   const getTierBadge = (tier: string) => {
@@ -263,8 +283,6 @@ export const CustomersListPage: React.FC = () => {
                   <TableRow>
                     <TableHead>Customer Name</TableHead>
                     <TableHead>Contact</TableHead>
-                    <TableHead>Tier</TableHead>
-                    <TableHead>Loyalty Points</TableHead>
                     <TableHead>Total Purchases</TableHead>
                     <TableHead>Last Purchase</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -293,17 +311,20 @@ export const CustomersListPage: React.FC = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{getTierBadge(customer.tier)}</TableCell>
-                      <TableCell>{customer.loyaltyPoints} pts</TableCell>
                       <TableCell>₹{customer.totalPurchases.toLocaleString()}</TableCell>
                       <TableCell>{new Date(customer.lastPurchase).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => navigateTo('customer-profile')}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => handleEditCustomer(customer)}>
                             <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setDeletingCustomer(customer)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -326,20 +347,30 @@ export const CustomersListPage: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Full Name *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter full name"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>First Name *</Label>
+                <Input
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder="First name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name</Label>
+                <Input
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  placeholder="Last name"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Phone Number *</Label>
               <Input
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+91 98765 43210"
+                placeholder="07x xxx xxxx"
               />
             </div>
             <div className="space-y-2">
@@ -378,72 +409,27 @@ export const CustomersListPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* View Customer Modal */}
-      <Dialog open={!!viewingCustomer} onOpenChange={() => setViewingCustomer(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Customer Details</DialogTitle>
-          </DialogHeader>
-          {viewingCustomer && (
-            <div className="space-y-4 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3>{viewingCustomer.name}</h3>
-                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                    Customer ID: {viewingCustomer.id}
-                  </p>
-                </div>
-                {getTierBadge(viewingCustomer.tier)}
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{viewingCustomer.phone}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{viewingCustomer.email}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
-                  <span>{viewingCustomer.address}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                <div>
-                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                    Loyalty Points
-                  </p>
-                  <p className="font-medium">{viewingCustomer.loyaltyPoints} pts</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                    Total Purchases
-                  </p>
-                  <p className="font-medium">₹{viewingCustomer.totalPurchases.toLocaleString()}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                    Last Purchase
-                  </p>
-                  <p className="font-medium">{new Date(viewingCustomer.lastPurchase).toLocaleDateString()}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewingCustomer(null)}>
-              Close
-            </Button>
-            <Button onClick={() => {
-              setViewingCustomer(null);
-              if (viewingCustomer) handleEditCustomer(viewingCustomer);
-            }}>
-              Edit Customer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingCustomer} onOpenChange={() => setDeletingCustomer(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deletingCustomer?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteCustomer} 
+              className="bg-destructive hover:bg-destructive/90"
+              autoFocus
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageTemplate>
   );
 };

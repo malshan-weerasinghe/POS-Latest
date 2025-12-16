@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
+import { Textarea } from '../ui/textarea';
 import { AppContext } from '../../App';
 import { toast } from 'sonner';
 
@@ -24,6 +25,22 @@ interface CartItem {
   tax: number;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+}
+
+const mockCustomers: Customer[] = [
+  { id: '1', name: 'John Silva', phone: '0771234567', email: 'john@email.com', address: 'Colombo 03' },
+  { id: '2', name: 'Mary Fernando', phone: '0767654321', email: 'mary@email.com', address: 'Kandy' },
+  { id: '3', name: 'Sunil Perera', phone: '0759876543', email: 'sunil@email.com', address: 'Galle' },
+  { id: '4', name: 'Nimal Kumar', phone: '0771112222', email: 'nimal@email.com', address: 'Negombo' },
+  { id: '5', name: 'Kamala Jayawardena', phone: '0763334444', email: 'kamala@email.com', address: 'Matara' },
+];
+
 const mockProducts = [
   { id: '1', name: 'Premium Rice 5kg', sku: 'GRC-001', costPrice: 300, price: 400, stock: 150, category: 'Groceries' },
   { id: '2', name: 'Cooking Oil 1L', sku: 'GRC-002', costPrice: 180, price: 240, stock: 200, category: 'Groceries' },
@@ -36,15 +53,33 @@ export const SalesBillingPage: React.FC = () => {
   const { navigateTo } = useContext(AppContext);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerResults, setShowCustomerResults] = useState(false);
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [amountReceived, setAmountReceived] = useState('');
+  
+  // New customer form state
+  const [newCustomer, setNewCustomer] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    address: '',
+  });
 
   const filteredProducts = mockProducts.filter(
     (p) =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredCustomers = mockCustomers.filter(
+    (c) =>
+      c.phone.includes(customerSearch) ||
+      c.name.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
   const addToCart = (product: typeof mockProducts[0]) => {
@@ -113,7 +148,7 @@ export const SalesBillingPage: React.FC = () => {
       total: grandTotal,
       paymentMethod,
       amountReceived: parseFloat(amountReceived),
-      customer: customerPhone,
+      customer: selectedCustomer,
     });
     
     // Show success toast
@@ -123,12 +158,49 @@ export const SalesBillingPage: React.FC = () => {
     
     // Reset
     setCart([]);
-    setCustomerPhone('');
+    setCustomerSearch('');
+    setSelectedCustomer(null);
     setPaymentMethod('cash');
     setAmountReceived('');
     setShowPaymentModal(false);
     // Navigate to receipt page
     navigateTo('receipt');
+  };
+
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerSearch(customer.phone);
+    setShowCustomerResults(false);
+  };
+
+  const handleAddNewCustomer = () => {
+    if (!newCustomer.firstName || !newCustomer.phone) {
+      toast.error('First Name and Phone are required');
+      return;
+    }
+
+    const customer: Customer = {
+      id: Date.now().toString(),
+      name: `${newCustomer.firstName} ${newCustomer.lastName}`.trim(),
+      phone: newCustomer.phone,
+      email: newCustomer.email,
+      address: newCustomer.address,
+    };
+
+    // In real app, save to database
+    mockCustomers.push(customer);
+    
+    toast.success('Customer Added!', {
+      description: `${customer.name} has been added successfully`,
+    });
+
+    // Select the new customer
+    setSelectedCustomer(customer);
+    setCustomerSearch(customer.phone);
+    
+    // Reset form and close modal
+    setNewCustomer({ firstName: '', lastName: '', phone: '', email: '', address: '' });
+    setShowAddCustomerModal(false);
   };
 
   const holdBill = () => {
@@ -291,18 +363,86 @@ export const SalesBillingPage: React.FC = () => {
           {/* Customer */}
           <Card>
             <CardHeader>
-              <CardTitle>Customer</CardTitle>
+              <CardTitle>Customer (Optional)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <Label>Phone Number</Label>
-                <Input
-                  placeholder="Enter phone number"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                />
-              </div>
-              <Button variant="outline" size="sm" className="w-full">
+              {selectedCustomer ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-surface-secondary rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium">{selectedCustomer.name}</p>
+                        <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                          {selectedCustomer.phone}
+                        </p>
+                        {selectedCustomer.email && (
+                          <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                            {selectedCustomer.email}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedCustomer(null);
+                          setCustomerSearch('');
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Search Customer</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Phone number or name..."
+                      value={customerSearch}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value);
+                        setShowCustomerResults(true);
+                      }}
+                      onFocus={() => setShowCustomerResults(true)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  {/* Customer Search Results */}
+                  {showCustomerResults && customerSearch && (
+                    <div className="border rounded-lg max-h-48 overflow-y-auto">
+                      {filteredCustomers.length > 0 ? (
+                        filteredCustomers.map((customer) => (
+                          <button
+                            key={customer.id}
+                            onClick={() => handleCustomerSelect(customer)}
+                            className="w-full px-3 py-2 text-left hover:bg-surface-hover border-b last:border-b-0"
+                          >
+                            <p className="font-medium">{customer.name}</p>
+                            <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                              {customer.phone}
+                            </p>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                          No customers found
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => setShowAddCustomerModal(true)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Customer
               </Button>
@@ -473,6 +613,76 @@ export const SalesBillingPage: React.FC = () => {
               disabled={paymentMethod === 'cash' && (!amountReceived || parseFloat(amountReceived) < grandTotal)}
             >
               Complete Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Customer Modal */}
+      <Dialog open={showAddCustomerModal} onOpenChange={setShowAddCustomerModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Customer</DialogTitle>
+            <DialogDescription>
+              Enter details for the new customer
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>First Name *</Label>
+                <Input
+                  value={newCustomer.firstName}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, firstName: e.target.value })}
+                  placeholder="First name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name</Label>
+                <Input
+                  value={newCustomer.lastName}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, lastName: e.target.value })}
+                  placeholder="Last name"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Phone Number *</Label>
+              <Input
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                placeholder="07x xxx xxxx"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email Address</Label>
+              <Input
+                type="email"
+                value={newCustomer.email}
+                onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                placeholder="customer@email.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Textarea
+                value={newCustomer.address}
+                onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                placeholder="Enter complete address"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowAddCustomerModal(false);
+              setNewCustomer({ firstName: '', lastName: '', phone: '', email: '', address: '' });
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddNewCustomer}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Customer
             </Button>
           </DialogFooter>
         </DialogContent>

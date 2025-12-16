@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Plus, Download, Upload, Search, Edit2, Phone, Mail, MapPin, Building2 } from 'lucide-react';
+import { Plus, Download, Upload, Search, Edit2, Trash2, Phone, Mail, MapPin, Building2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
@@ -80,6 +81,7 @@ export const SuppliersListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -157,6 +159,13 @@ export const SuppliersListPage: React.FC = () => {
     }
     setShowAddModal(false);
     resetForm();
+  };
+
+  const handleDeleteSupplier = () => {
+    if (deletingSupplier) {
+      setSuppliers(suppliers.filter((s) => s.id !== deletingSupplier.id));
+      setDeletingSupplier(null);
+    }
   };
 
   return (
@@ -293,9 +302,19 @@ export const SuppliersListPage: React.FC = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditSupplier(supplier)}>
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditSupplier(supplier)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setDeletingSupplier(supplier)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -392,6 +411,28 @@ export const SuppliersListPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingSupplier} onOpenChange={() => setDeletingSupplier(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Supplier</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deletingSupplier?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteSupplier} 
+              className="bg-destructive hover:bg-destructive/90"
+              autoFocus
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageTemplate>
   );
 };
