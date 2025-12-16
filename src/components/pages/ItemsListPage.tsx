@@ -23,6 +23,7 @@ interface Item {
   sellingPrice: number;
   supplier: string;
   barcode: string;
+  warrantyMonths: number;
   status: 'in-stock' | 'low-stock' | 'out-of-stock';
 }
 
@@ -38,6 +39,7 @@ const mockItems: Item[] = [
     sellingPrice: 400,
     supplier: 'ABC Wholesale',
     barcode: '8901234567890',
+    warrantyMonths: 12,
     status: 'in-stock',
   },
   {
@@ -51,6 +53,7 @@ const mockItems: Item[] = [
     sellingPrice: 240,
     supplier: 'XYZ Traders',
     barcode: '8901234567891',
+    warrantyMonths: 6,
     status: 'low-stock',
   },
   {
@@ -64,6 +67,7 @@ const mockItems: Item[] = [
     sellingPrice: 52,
     supplier: 'ABC Wholesale',
     barcode: '8901234567892',
+    warrantyMonths: 0,
     status: 'out-of-stock',
   },
   {
@@ -77,6 +81,7 @@ const mockItems: Item[] = [
     sellingPrice: 120,
     supplier: 'PQR Distributors',
     barcode: '8901234567893',
+    warrantyMonths: 24,
     status: 'in-stock',
   },
   {
@@ -90,6 +95,7 @@ const mockItems: Item[] = [
     sellingPrice: 400,
     supplier: 'ABC Wholesale',
     barcode: '8901234567894',
+    warrantyMonths: 12,
     status: 'in-stock',
   },
 ];
@@ -128,6 +134,7 @@ export const ItemsListPage: React.FC = () => {
     sellingPrice: '',
     supplier: '',
     barcode: '',
+    warrantyMonths: '0',
   });
 
   const filteredItems = items.filter((item) => {
@@ -158,6 +165,7 @@ export const ItemsListPage: React.FC = () => {
       sellingPrice: '',
       supplier: '',
       barcode: '',
+      warrantyMonths: '0',
     });
   };
 
@@ -549,6 +557,25 @@ export const ItemsListPage: React.FC = () => {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+            <div className="col-span-2 space-y-2">
+              <Label>Warranty Period</Label>
+              <Select 
+                value={formData.warrantyMonths} 
+                onValueChange={(value) => setFormData({ ...formData, warrantyMonths: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select warranty period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">No Warranty</SelectItem>
+                  <SelectItem value="3">3 Months</SelectItem>
+                  <SelectItem value="6">6 Months</SelectItem>
+                  <SelectItem value="12">12 Months (1 Year)</SelectItem>
+                  <SelectItem value="24">24 Months (2 Years)</SelectItem>
+                  <SelectItem value="36">36 Months (3 Years)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Stock Quantity *</Label>

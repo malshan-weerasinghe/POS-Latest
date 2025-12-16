@@ -9,6 +9,10 @@ import { AppContext } from '../../App';
 export const ReceiptPage: React.FC = () => {
   const { navigateTo } = useContext(AppContext);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const receiptData = {
     invoiceNumber: 'INV-2025-001',
     date: new Date().toLocaleString(),
@@ -34,7 +38,7 @@ export const ReceiptPage: React.FC = () => {
       title="Receipt"
       subtitle={`Invoice #${receiptData.invoiceNumber}`}
       actions={
-        <>
+        <div className="no-print">
           <Button variant="outline" size="sm" onClick={() => navigateTo('sales-billing')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             New Sale
@@ -43,16 +47,16 @@ export const ReceiptPage: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
             Print Receipt
           </Button>
-        </>
+        </div>
       }
     >
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Success Message */}
-        <Card className="border-[#10b981] bg-[#d1fae5] dark:bg-[#064e3b]">
+        <Card className="border-[#10b981] bg-[#d1fae5] dark:bg-[#064e3b] no-print">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-[#10b981] flex items-center justify-center">

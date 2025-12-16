@@ -23,6 +23,7 @@ interface CartItem {
   quantity: number;
   discount: number;
   tax: number;
+  warrantyMonths: number;
 }
 
 interface Customer {
@@ -42,11 +43,11 @@ const mockCustomers: Customer[] = [
 ];
 
 const mockProducts = [
-  { id: '1', name: 'Premium Rice 5kg', sku: 'GRC-001', costPrice: 300, price: 400, stock: 150, category: 'Groceries' },
-  { id: '2', name: 'Cooking Oil 1L', sku: 'GRC-002', costPrice: 180, price: 240, stock: 200, category: 'Groceries' },
-  { id: '3', name: 'Sugar 1kg', sku: 'GRC-003', costPrice: 40, price: 52, stock: 300, category: 'Groceries' },
-  { id: '4', name: 'Tea Powder 500g', sku: 'BEV-001', costPrice: 90, price: 120, stock: 180, category: 'Beverages' },
-  { id: '5', name: 'Wheat Flour 10kg', sku: 'GRC-004', costPrice: 320, price: 400, stock: 120, category: 'Groceries' },
+  { id: '1', name: 'Premium Rice 5kg', sku: 'GRC-001', costPrice: 300, price: 400, stock: 150, category: 'Groceries', warrantyMonths: 0 },
+  { id: '2', name: 'Cooking Oil 1L', sku: 'GRC-002', costPrice: 180, price: 240, stock: 200, category: 'Groceries', warrantyMonths: 0 },
+  { id: '3', name: 'Sugar 1kg', sku: 'GRC-003', costPrice: 40, price: 52, stock: 300, category: 'Groceries', warrantyMonths: 0 },
+  { id: '4', name: 'Tea Powder 500g', sku: 'BEV-001', costPrice: 90, price: 120, stock: 180, category: 'Beverages', warrantyMonths: 0 },
+  { id: '5', name: 'Wheat Flour 10kg', sku: 'GRC-004', costPrice: 320, price: 400, stock: 120, category: 'Groceries', warrantyMonths: 0 },
 ];
 
 export const SalesBillingPage: React.FC = () => {
@@ -57,6 +58,7 @@ export const SalesBillingPage: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [amountReceived, setAmountReceived] = useState('');
@@ -98,6 +100,7 @@ export const SalesBillingPage: React.FC = () => {
           quantity: 1,
           discount: 0,
           tax: 5, // 5% tax
+          warrantyMonths: product.warrantyMonths,
         },
       ]);
     }
@@ -136,9 +139,28 @@ export const SalesBillingPage: React.FC = () => {
   }, 0);
   const grandTotal = taxableAmount + totalTax;
 
+  const getWarrantyExpiry = (months: number) => {
+    if (months === 0) return null;
+    const date = new Date();
+    date.setMonth(date.getMonth() + months);
+    return date.toLocaleDateString('en-GB');
+  };
+
   const handlePayment = () => {
     if (cart.length === 0) return;
     setShowPaymentModal(true);
+  };
+
+  const handlePrintPreview = () => {
+    if (cart.length === 0) {
+      toast.error('Add items to cart before printing');
+      return;
+    }
+    setShowInvoicePreview(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const completePayment = () => {
@@ -215,6 +237,144 @@ export const SalesBillingPage: React.FC = () => {
 
   return (
     <PageTemplate hideHeader>
+      {/* Hidden Receipt Template for 80mm Thermal Printer */}
+      <div id="thermal-receipt" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        <div style={{ 
+          width: '80mm', 
+          fontFamily: '"Courier New", monospace', 
+          fontSize: '11px', 
+          lineHeight: '1.3',
+          padding: '2mm',
+          color: '#000',
+          background: '#fff'
+        }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>** MY PHONE SHOP **</div>
+            <div style={{ fontSize: '11px', marginTop: '2px' }}>Premium Pre-Owned Devices</div>
+            <div style={{ fontSize: '11px' }}>123 Mobile Street, Colombo</div>
+            <div style={{ fontSize: '11px' }}>Ph: 011-2345678 / 077-1234567</div>
+          </div>
+          <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+          {/* Bill Info */}
+          <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+            <div>Date: {new Date().toLocaleDateString('en-GB')}         Time: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+            <div>Bill No: #INV25-{Date.now().toString().slice(-5)}</div>
+            <div>Cashier: Admin</div>
+          </div>
+          <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+          {/* Customer Info */}
+          {selectedCustomer && (
+            <>
+              <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+                <div>Customer: {selectedCustomer.name}</div>
+                <div>Phone: {selectedCustomer.phone}</div>
+              </div>
+              <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+            </>
+          )}
+
+          {/* Items Header */}
+          <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
+            <div>ITEM DESCRIPTION</div>
+            <div>Qty x Price                        TOTAL</div>
+          </div>
+          <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+          {/* Items */}
+          {cart.map((item, index) => (
+            <div key={item.id} style={{ fontSize: '11px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ flex: 1 }}>
+                  <div>{item.quantity} x {item.name}</div>
+                  <div style={{ fontSize: '10px', marginLeft: '5px' }}>SKU: {item.sku}</div>
+                  {item.warrantyMonths > 0 && (
+                    <div style={{ fontSize: '10px', marginLeft: '5px' }}>
+                      *Warranty: {item.warrantyMonths} Months (Till {getWarrantyExpiry(item.warrantyMonths)})
+                    </div>
+                  )}
+                  {item.warrantyMonths === 0 && (
+                    <div style={{ fontSize: '10px', marginLeft: '5px' }}>*Warranty: N/A</div>
+                  )}
+                </div>
+                <div style={{ whiteSpace: 'nowrap', marginLeft: '10px' }}>
+                  {(item.price * item.quantity - item.discount).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+          {/* Totals */}
+          <div style={{ fontSize: '11px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <span>Subtotal:</span>
+              <span>{subtotal.toFixed(2)}</span>
+            </div>
+            {totalDiscount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                <span>Discount:</span>
+                <span>-{totalDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <span>Tax (5%):</span>
+              <span>{totalTax.toFixed(2)}</span>
+            </div>
+          </div>
+          <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+          {/* Grand Total */}
+          <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', margin: '5px 0' }}>
+            *** GRAND TOTAL:      LKR {grandTotal.toFixed(2)} ***
+          </div>
+          <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+          {/* Payment Details */}
+          {paymentMethod && (
+            <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>PAID BY: {paymentMethod.toUpperCase()}</span>
+                <span>{amountReceived || grandTotal.toFixed(2)}</span>
+              </div>
+              {paymentMethod === 'cash' && amountReceived && parseFloat(amountReceived) > grandTotal && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>CHANGE DUE:</span>
+                  <span>{(parseFloat(amountReceived) - grandTotal).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Warranty Terms */}
+          <div style={{ borderTop: '2px solid #000', borderBottom: '2px solid #000', margin: '8px 0', padding: '5px 0' }}>
+            <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
+              WARRANTY TERMS
+            </div>
+            <div style={{ fontSize: '9px', lineHeight: '1.3' }}>
+              <div>1. This original bill is mandatory for</div>
+              <div>   any warranty claims.</div>
+              <div>2. Warranty covers hardware defects</div>
+              <div>   ONLY.</div>
+              <div>3. Warranty is VOID in case of physical</div>
+              <div>   damage, water/liquid damage, or</div>
+              <div>   unauthorized repairs.</div>
+              <div>4. No cash refunds. Exchange within</div>
+              <div>   7 days for faulty devices only.</div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{ textAlign: 'center', fontSize: '11px', marginTop: '8px' }}>
+            <div style={{ fontWeight: 'bold' }}>Thank You For Your Purchase!</div>
+            <div style={{ marginTop: '2px' }}>Please Visit Again.</div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-6">
         {/* Left: Product Selection & Cart */}
         <div className="col-span-2 space-y-4">
@@ -301,6 +461,11 @@ export const SalesBillingPage: React.FC = () => {
                               <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
                                 {item.sku}
                               </p>
+                              {item.warrantyMonths > 0 && (
+                                <p className="text-primary" style={{ fontSize: 'var(--text-body-s)' }}>
+                                  Warranty: {item.warrantyMonths} months (Valid till {getWarrantyExpiry(item.warrantyMonths)})
+                                </p>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>Rs {item.costPrice}</TableCell>
@@ -543,7 +708,7 @@ export const SalesBillingPage: React.FC = () => {
             <Button className="w-full h-12" size="lg" onClick={handlePayment} disabled={cart.length === 0}>
               Complete Sale - Rs {grandTotal.toFixed(2)}
             </Button>
-            <Button variant="outline" className="w-full" size="sm">
+            <Button variant="outline" className="w-full" size="sm" onClick={handlePrintPreview}>
               <Printer className="h-4 w-4 mr-2" />
               Print Preview
             </Button>
@@ -683,6 +848,170 @@ export const SalesBillingPage: React.FC = () => {
             <Button onClick={handleAddNewCustomer}>
               <Plus className="h-4 w-4 mr-2" />
               Add Customer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Preview Modal */}
+      <Dialog open={showInvoicePreview} onOpenChange={setShowInvoicePreview}>
+        <DialogContent className="max-w-[340px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Invoice Preview (80mm)</DialogTitle>
+          </DialogHeader>
+          
+          <div id="invoice-receipt" style={{ 
+            fontFamily: '"Courier New", monospace', 
+            fontSize: '11px', 
+            lineHeight: '1.3',
+            padding: '10px',
+            border: '1px solid #e5e5e5',
+            borderRadius: '8px',
+            background: 'white',
+            width: '302px',
+            margin: '0 auto'
+          }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>** MY PHONE SHOP **</div>
+              <div style={{ fontSize: '11px', marginTop: '2px' }}>Premium Pre-Owned Devices</div>
+              <div style={{ fontSize: '11px' }}>123 Mobile Street, Colombo</div>
+              <div style={{ fontSize: '11px' }}>Ph: 011-2345678 / 077-1234567</div>
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+            {/* Bill Info */}
+            <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                <span>Time: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+              </div>
+              <div>Bill No: #INV25-{Date.now().toString().slice(-5)}</div>
+              <div>Cashier: Admin</div>
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+            {/* Customer Info */}
+            {selectedCustomer && (
+              <>
+                <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+                  <div>Customer: {selectedCustomer.name}</div>
+                  <div>Phone: {selectedCustomer.phone}</div>
+                </div>
+                <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+              </>
+            )}
+
+            {/* Items Header */}
+            <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ width: '20px' }}>Ln</span>
+                <span style={{ flex: 1 }}>Item</span>
+                <span style={{ width: '60px', textAlign: 'right' }}>Price</span>
+                <span style={{ width: '30px', textAlign: 'center' }}>Qty</span>
+                <span style={{ width: '60px', textAlign: 'right' }}>Amount</span>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+            {/* Items */}
+            {cart.map((item, index) => (
+              <div key={item.id} style={{ fontSize: '11px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ width: '20px' }}>{String(index + 1).padStart(2, '0')}</span>
+                  <span style={{ flex: 1 }}>{item.sku}</span>
+                  <span style={{ width: '60px', textAlign: 'right' }}>{item.price.toFixed(2)}</span>
+                  <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
+                  <span style={{ width: '60px', textAlign: 'right' }}>{(item.price * item.quantity - item.discount).toFixed(2)}</span>
+                </div>
+                <div style={{ marginLeft: '20px', fontSize: '11px' }}>
+                  {item.name}
+                </div>
+                <div style={{ marginLeft: '20px', fontSize: '10px' }}>
+                  {item.warrantyMonths > 0 ? (
+                    <>*{item.warrantyMonths} months warranty</>
+                  ) : (
+                    <>*No warranty</>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+            {/* Totals */}
+            <div style={{ fontSize: '11px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                <span>Subtotal:</span>
+                <span>{subtotal.toFixed(2)}</span>
+              </div>
+              {totalDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span>Discount:</span>
+                  <span>-{totalDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                <span>Tax (5%):</span>
+                <span>{totalTax.toFixed(2)}</span>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+            {/* Grand Total */}
+            <div style={{ fontSize: '13px', fontWeight: 'bold', textAlign: 'center', margin: '5px 0' }}>
+              *** GRAND TOTAL:      LKR {grandTotal.toFixed(2)} ***
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+            {/* Payment Details */}
+            {paymentMethod && (
+              <div style={{ fontSize: '11px', marginBottom: '5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>PAID BY: {paymentMethod.toUpperCase()}</span>
+                  <span>{amountReceived || grandTotal.toFixed(2)}</span>
+                </div>
+                {paymentMethod === 'cash' && amountReceived && parseFloat(amountReceived) > grandTotal && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>CHANGE DUE:</span>
+                    <span>{(parseFloat(amountReceived) - grandTotal).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Warranty Terms */}
+            <div style={{ borderTop: '2px solid #000', borderBottom: '2px solid #000', margin: '8px 0', padding: '5px 0' }}>
+              <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
+                WARRANTY TERMS
+              </div>
+              <div style={{ fontSize: '9px', lineHeight: '1.3' }}>
+                <div>1. This original bill is mandatory for</div>
+                <div>   any warranty claims.</div>
+                <div>2. Warranty covers hardware defects</div>
+                <div>   ONLY.</div>
+                <div>3. Warranty is VOID in case of physical</div>
+                <div>   damage, water/liquid damage, or</div>
+                <div>   unauthorized repairs.</div>
+                <div>4. No cash refunds. Exchange within</div>
+                <div>   7 days for faulty devices only.</div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ textAlign: 'center', fontSize: '11px', marginTop: '8px' }}>
+              <div style={{ fontWeight: 'bold' }}>Thank You For Your Purchase!</div>
+              <div style={{ marginTop: '2px' }}>Please Visit Again.</div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInvoicePreview(false)}>
+              Close
+            </Button>
+            <Button onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              Print Invoice
             </Button>
           </DialogFooter>
         </DialogContent>

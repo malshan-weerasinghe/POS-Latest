@@ -401,3 +401,29 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Print Styles */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body.printing-receipt > *:not(#thermal-receipt) {
+    display: none !important;
+  }
+  
+  body.printing-receipt {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  
+  body.printing-receipt #thermal-receipt {
+    display: block !important;
+    position: static !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+  }
+}
