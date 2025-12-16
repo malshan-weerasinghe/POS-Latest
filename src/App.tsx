@@ -25,6 +25,8 @@ export interface AppContextType {
   navigateTo: (route: Route) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 export const AppContext = React.createContext<AppContextType>({
@@ -32,11 +34,14 @@ export const AppContext = React.createContext<AppContextType>({
   navigateTo: () => {},
   theme: 'light',
   toggleTheme: () => {},
+  sidebarCollapsed: false,
+  setSidebarCollapsed: () => {},
 });
 
 export default function App() {
   const [currentRoute, setCurrentRoute] = useState<Route>('dashboard');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const navigateTo = (route: Route) => {
     setCurrentRoute(route);
@@ -79,7 +84,7 @@ export default function App() {
   };
 
   return (
-    <AppContext.Provider value={{ currentRoute, navigateTo, theme, toggleTheme }}>
+    <AppContext.Provider value={{ currentRoute, navigateTo, theme, toggleTheme, sidebarCollapsed, setSidebarCollapsed }}>
       <div className={theme}>
         <AppShell currentRoute={currentRoute} onNavigate={navigateTo}>
           {renderPage()}

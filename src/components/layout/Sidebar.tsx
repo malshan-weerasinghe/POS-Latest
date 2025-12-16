@@ -66,9 +66,8 @@ const menuItems: MenuItem[] = [
 ];
 
 export const Sidebar: React.FC = () => {
-  const { currentRoute, navigateTo } = useContext(AppContext);
+  const { currentRoute, navigateTo, sidebarCollapsed, setSidebarCollapsed } = useContext(AppContext);
   const [expandedItems, setExpandedItems] = useState<string[]>(['products']);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleExpand = (itemId: string) => {
     setExpandedItems((prev) =>
@@ -78,7 +77,7 @@ export const Sidebar: React.FC = () => {
 
   const handleItemClick = (item: MenuItem) => {
     if (item.children) {
-      if (!isCollapsed) {
+      if (!sidebarCollapsed) {
         toggleExpand(item.id);
       } else {
         // If collapsed and has children, navigate to first child
@@ -115,12 +114,12 @@ export const Sidebar: React.FC = () => {
             isActive && !hasChildren
               ? "bg-sidebar-primary text-sidebar-primary-foreground"
               : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            isCollapsed && "justify-center"
+            sidebarCollapsed && "justify-center"
           )}
-          title={isCollapsed ? item.label : undefined}
+          title={sidebarCollapsed ? item.label : undefined}
         >
           <Icon className="h-5 w-5 flex-shrink-0" />
-          {!isCollapsed && (
+          {!sidebarCollapsed && (
             <>
               <span 
                 className="flex-1 text-left"
@@ -143,7 +142,7 @@ export const Sidebar: React.FC = () => {
           )}
         </button>
         
-        {!isCollapsed && hasChildren && isExpanded && (
+        {!sidebarCollapsed && hasChildren && isExpanded && (
           <div className="mt-1 space-y-1">
             {item.children!.map((child) => {
               const ChildIcon = child.icon;
@@ -180,11 +179,11 @@ export const Sidebar: React.FC = () => {
   return (
     <aside className={cn(
       "h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0 z-50 transition-all duration-300",
-      isCollapsed ? "w-[70px]" : "w-[240px]"
+      sidebarCollapsed ? "w-[70px]" : "w-[240px]"
     )}>
       {/* Logo/Brand */}
       <div className="h-16 px-4 flex items-center justify-between border-b border-sidebar-border">
-        {!isCollapsed && (
+        {!sidebarCollapsed && (
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
               <ShoppingCart className="h-5 w-5 text-sidebar-primary-foreground" />
@@ -201,10 +200,10 @@ export const Sidebar: React.FC = () => {
           </div>
         )}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="h-8 w-8 rounded-lg hover:bg-sidebar-accent flex items-center justify-center transition-colors"
         >
-          {isCollapsed ? (
+          {sidebarCollapsed ? (
             <Menu className="h-5 w-5 text-sidebar-foreground" />
           ) : (
             <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
@@ -220,7 +219,7 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer/Version Info */}
-      {!isCollapsed && (
+      {!sidebarCollapsed && (
         <div className="p-4 border-t border-sidebar-border">
           <div className="text-center space-y-1">
             <p className="text-sidebar-foreground/60" style={{ 

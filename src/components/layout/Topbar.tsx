@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { AppContext } from '../../App';
 
 export const Topbar: React.FC = () => {
-  const { theme, toggleTheme } = useContext(AppContext);
+  const { theme, toggleTheme, sidebarCollapsed } = useContext(AppContext);
 
   const getPageTitle = () => {
     // You can enhance this to show dynamic titles based on route
@@ -14,7 +14,10 @@ export const Topbar: React.FC = () => {
   };
 
   return (
-    <header className="h-16 bg-surface border-b border-border flex items-center px-6 fixed top-0 left-[240px] right-0 z-40">
+    <header 
+      className="h-16 bg-surface border-b border-border flex items-center px-6 fixed top-0 right-0 z-40 transition-all duration-300"
+      style={{ left: sidebarCollapsed ? '70px' : '240px' }}
+    >
       <div className="flex items-center justify-between w-full">
         {/* Left: Page Title */}
         <div className="flex-shrink-0">
