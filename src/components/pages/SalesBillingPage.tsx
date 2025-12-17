@@ -206,17 +206,13 @@ export const SalesBillingPage: React.FC = () => {
     setPaymentMethod('cash');
     setAmountReceived('');
     setShowPaymentModal(false);
-    // Navigate to receipt page
-    navigateTo('receipt');
+    // Stay on sales billing page
   };
 
   const completePaymentAndPrint = () => {
     // Complete the payment first
     completePayment();
-    // Then trigger print (small delay to allow state updates)
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    // Print functionality disabled for now
   };
 
   const handleCustomerSelect = (customer: Customer) => {
