@@ -205,6 +205,15 @@ export const SalesBillingPage: React.FC = () => {
     navigateTo('receipt');
   };
 
+  const completePaymentAndPrint = () => {
+    // Complete the payment first
+    completePayment();
+    // Then trigger print (small delay to allow state updates)
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
   const handleCustomerSelect = (customer: Customer) => {
     setSelectedCustomer(customer);
     setCustomerSearch(customer.phone);
@@ -770,7 +779,11 @@ export const SalesBillingPage: React.FC = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={completePayment}>
-              Confirm Sale (Press Enter)
+              Confirm
+            </AlertDialogAction>
+            <AlertDialogAction onClick={completePaymentAndPrint} className="ml-2">
+              <Printer className="h-4 w-4 mr-2" />
+              Confirm & Print
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
