@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Tags,
   ChevronLeft,
-  Menu
+  Menu,
+  History
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { AppContext, Route } from '../../App';
@@ -35,6 +36,12 @@ const menuItems: MenuItem[] = [
     label: 'Sales & Billing', 
     icon: ShoppingCart,
     route: 'sales-billing'
+  },
+  { 
+    id: 'sales-history', 
+    label: 'Sales History', 
+    icon: History,
+    route: 'sales-history'
   },
   { 
     id: 'products', 
@@ -194,7 +201,7 @@ export const Sidebar: React.FC = () => {
                 fontWeight: 'var(--font-weight-semibold)',
                 lineHeight: 'var(--line-height-tight)'
               }}>
-                POS System
+                Unlimited Mobile
               </h1>
             </div>
           </div>

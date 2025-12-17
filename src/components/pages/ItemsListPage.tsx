@@ -3,6 +3,7 @@ import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Plus, Download, Upload, Filter, Search, Edit2, Trash2, Package, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
@@ -30,71 +31,141 @@ interface Item {
 const mockItems: Item[] = [
   {
     id: '1',
-    sku: 'GRC-001',
-    name: 'Premium Rice 5kg',
-    category: 'Groceries',
-    stock: 150,
-    reorderLevel: 50,
-    costPrice: 320,
-    sellingPrice: 400,
-    supplier: 'ABC Wholesale',
+    sku: 'PHN-IP13P-128',
+    name: 'iPhone 13 Pro 128GB',
+    category: 'Smartphones',
+    stock: 12,
+    reorderLevel: 5,
+    costPrice: 115000,
+    sellingPrice: 135000,
+    supplier: 'Apple Authorized',
     barcode: '8901234567890',
     warrantyMonths: 12,
     status: 'in-stock',
   },
   {
     id: '2',
-    sku: 'GRC-002',
-    name: 'Cooking Oil 1L',
-    category: 'Groceries',
-    stock: 35,
-    reorderLevel: 30,
-    costPrice: 190,
-    sellingPrice: 240,
-    supplier: 'XYZ Traders',
+    sku: 'PHN-SAM-S23',
+    name: 'Samsung Galaxy S23',
+    category: 'Smartphones',
+    stock: 8,
+    reorderLevel: 5,
+    costPrice: 95000,
+    sellingPrice: 110000,
+    supplier: 'Samsung Official',
     barcode: '8901234567891',
+    warrantyMonths: 12,
+    status: 'in-stock',
+  },
+  {
+    id: '3',
+    sku: 'PHN-IP12-64',
+    name: 'iPhone 12 64GB',
+    category: 'Smartphones',
+    stock: 2,
+    reorderLevel: 5,
+    costPrice: 75000,
+    sellingPrice: 88000,
+    supplier: 'Apple Authorized',
+    barcode: '8901234567892',
     warrantyMonths: 6,
     status: 'low-stock',
   },
   {
-    id: '3',
-    sku: 'GRC-003',
-    name: 'Sugar 1kg',
-    category: 'Groceries',
-    stock: 0,
-    reorderLevel: 100,
-    costPrice: 42,
-    sellingPrice: 52,
-    supplier: 'ABC Wholesale',
-    barcode: '8901234567892',
-    warrantyMonths: 0,
-    status: 'out-of-stock',
-  },
-  {
     id: '4',
-    sku: 'BEV-001',
-    name: 'Tea Powder 500g',
-    category: 'Beverages',
-    stock: 180,
-    reorderLevel: 40,
-    costPrice: 95,
-    sellingPrice: 120,
-    supplier: 'PQR Distributors',
+    sku: 'ACC-AP-PRO2',
+    name: 'AirPods Pro 2nd Gen',
+    category: 'Accessories',
+    stock: 25,
+    reorderLevel: 10,
+    costPrice: 28000,
+    sellingPrice: 32000,
+    supplier: 'Apple Authorized',
     barcode: '8901234567893',
-    warrantyMonths: 24,
+    warrantyMonths: 12,
     status: 'in-stock',
   },
   {
     id: '5',
-    sku: 'GRC-004',
-    name: 'Wheat Flour 10kg',
-    category: 'Groceries',
-    stock: 120,
-    reorderLevel: 30,
-    costPrice: 320,
-    sellingPrice: 400,
-    supplier: 'ABC Wholesale',
+    sku: 'ACC-CHR-25W',
+    name: 'Samsung Charger 25W',
+    category: 'Accessories',
+    stock: 0,
+    reorderLevel: 20,
+    costPrice: 1200,
+    sellingPrice: 1800,
+    supplier: 'Samsung Official',
     barcode: '8901234567894',
+    warrantyMonths: 6,
+    status: 'out-of-stock',
+  },
+  {
+    id: '6',
+    sku: 'PHN-IP11-128',
+    name: 'iPhone 11 128GB',
+    category: 'Smartphones',
+    stock: 10,
+    reorderLevel: 5,
+    costPrice: 58000,
+    sellingPrice: 68000,
+    supplier: 'Apple Authorized',
+    barcode: '8901234567895',
+    warrantyMonths: 6,
+    status: 'in-stock',
+  },
+  {
+    id: '7',
+    sku: 'PHN-OP-N3',
+    name: 'OnePlus Nord 3',
+    category: 'Smartphones',
+    stock: 18,
+    reorderLevel: 8,
+    costPrice: 42000,
+    sellingPrice: 52000,
+    supplier: 'OnePlus Distributor',
+    barcode: '8901234567896',
+    warrantyMonths: 12,
+    status: 'in-stock',
+  },
+  {
+    id: '8',
+    sku: 'ACC-CASE-UNI',
+    name: 'Phone Case Universal',
+    category: 'Accessories',
+    stock: 100,
+    reorderLevel: 30,
+    costPrice: 500,
+    sellingPrice: 1200,
+    supplier: 'Local Accessories',
+    barcode: '8901234567897',
+    warrantyMonths: 0,
+    status: 'in-stock',
+  },
+  {
+    id: '9',
+    sku: 'ACC-GLASS-SC',
+    name: 'Tempered Glass Screen',
+    category: 'Accessories',
+    stock: 150,
+    reorderLevel: 50,
+    costPrice: 300,
+    sellingPrice: 800,
+    supplier: 'Local Accessories',
+    barcode: '8901234567898',
+    warrantyMonths: 0,
+    status: 'in-stock',
+  },
+  {
+    id: '10',
+    sku: 'ACC-PB-20K',
+    name: 'Power Bank 20000mAh',
+    category: 'Accessories',
+    stock: 30,
+    reorderLevel: 15,
+    costPrice: 3500,
+    sellingPrice: 5500,
+    supplier: 'Local Accessories',
+    barcode: '8901234567899',
     warrantyMonths: 12,
     status: 'in-stock',
   },
@@ -111,8 +182,8 @@ export const ItemsListPage: React.FC = () => {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   
-  const [categories, setCategories] = useState(['Groceries', 'Beverages', 'Snacks', 'Personal Care']);
-  const [suppliers, setSuppliers] = useState(['ABC Wholesale', 'XYZ Traders', 'PQR Distributors']);
+  const [categories, setCategories] = useState(['Smartphones', 'Accessories', 'Tablets', 'Smartwatches']);
+  const [suppliers, setSuppliers] = useState(['Apple Authorized', 'Samsung Official', 'OnePlus Distributor', 'Local Accessories']);
   
   const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
   const [supplierFormData, setSupplierFormData] = useState({
@@ -264,8 +335,12 @@ export const ItemsListPage: React.FC = () => {
     resetForm();
   };
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const handleDeleteItem = (id: string) => {
     setItems(items.filter((item) => item.id !== id));
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -337,10 +412,10 @@ export const ItemsListPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Groceries">Groceries</SelectItem>
-                  <SelectItem value="Beverages">Beverages</SelectItem>
-                  <SelectItem value="Snacks">Snacks</SelectItem>
-                  <SelectItem value="Personal Care">Personal Care</SelectItem>
+                  <SelectItem value="Smartphones">Smartphones</SelectItem>
+                  <SelectItem value="Accessories">Accessories</SelectItem>
+                  <SelectItem value="Tablets">Tablets</SelectItem>
+                  <SelectItem value="Smartwatches">Smartwatches</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -446,14 +521,32 @@ export const ItemsListPage: React.FC = () => {
                             <Button variant="ghost" size="sm" onClick={() => handleEditItem(item)}>
                               <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <AlertDialog open={deleteDialogOpen && itemToDelete?.id === item.id} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setItemToDelete(null); }}>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { setItemToDelete(item); setDeleteDialogOpen(true); }}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Item</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete <b>{item.name}</b>? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={() => handleDeleteItem(item.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -503,7 +596,7 @@ export const ItemsListPage: React.FC = () => {
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Premium Rice 5kg"
+                placeholder="e.g., iPhone 13 Pro 128GB"
               />
             </div>
             <div className="space-y-2">

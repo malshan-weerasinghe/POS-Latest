@@ -44,11 +44,16 @@ const mockCustomers: Customer[] = [
 ];
 
 const mockProducts = [
-  { id: '1', name: 'Premium Rice 5kg', sku: 'GRC-001', costPrice: 300, price: 400, stock: 150, category: 'Groceries', warrantyMonths: 0 },
-  { id: '2', name: 'Cooking Oil 1L', sku: 'GRC-002', costPrice: 180, price: 240, stock: 200, category: 'Groceries', warrantyMonths: 0 },
-  { id: '3', name: 'Sugar 1kg', sku: 'GRC-003', costPrice: 40, price: 52, stock: 300, category: 'Groceries', warrantyMonths: 0 },
-  { id: '4', name: 'Tea Powder 500g', sku: 'BEV-001', costPrice: 90, price: 120, stock: 180, category: 'Beverages', warrantyMonths: 0 },
-  { id: '5', name: 'Wheat Flour 10kg', sku: 'GRC-004', costPrice: 320, price: 400, stock: 120, category: 'Groceries', warrantyMonths: 0 },
+  { id: '1', name: 'iPhone 13 Pro 128GB', sku: 'PHN-IP13P-128', costPrice: 115000, price: 135000, stock: 12, category: 'Smartphones', warrantyMonths: 12 },
+  { id: '2', name: 'Samsung Galaxy S23', sku: 'PHN-SAM-S23', costPrice: 95000, price: 110000, stock: 8, category: 'Smartphones', warrantyMonths: 12 },
+  { id: '3', name: 'iPhone 12 64GB', sku: 'PHN-IP12-64', costPrice: 75000, price: 88000, stock: 15, category: 'Smartphones', warrantyMonths: 6 },
+  { id: '4', name: 'AirPods Pro 2nd Gen', sku: 'ACC-AP-PRO2', costPrice: 28000, price: 32000, stock: 25, category: 'Accessories', warrantyMonths: 12 },
+  { id: '5', name: 'Samsung Charger 25W', sku: 'ACC-CHR-25W', costPrice: 1200, price: 1800, stock: 50, category: 'Accessories', warrantyMonths: 6 },
+  { id: '6', name: 'iPhone 11 128GB', sku: 'PHN-IP11-128', costPrice: 58000, price: 68000, stock: 10, category: 'Smartphones', warrantyMonths: 6 },
+  { id: '7', name: 'OnePlus Nord 3', sku: 'PHN-OP-N3', costPrice: 42000, price: 52000, stock: 18, category: 'Smartphones', warrantyMonths: 12 },
+  { id: '8', name: 'Phone Case Universal', sku: 'ACC-CASE-UNI', costPrice: 500, price: 1200, stock: 100, category: 'Accessories', warrantyMonths: 0 },
+  { id: '9', name: 'Tempered Glass Screen', sku: 'ACC-GLASS-SC', costPrice: 300, price: 800, stock: 150, category: 'Accessories', warrantyMonths: 0 },
+  { id: '10', name: 'Power Bank 20000mAh', sku: 'ACC-PB-20K', costPrice: 3500, price: 5500, stock: 30, category: 'Accessories', warrantyMonths: 12 },
 ];
 
 export const SalesBillingPage: React.FC = () => {
@@ -201,17 +206,13 @@ export const SalesBillingPage: React.FC = () => {
     setPaymentMethod('cash');
     setAmountReceived('');
     setShowPaymentModal(false);
-    // Navigate to receipt page
-    navigateTo('receipt');
+    // Stay on sales billing page
   };
 
   const completePaymentAndPrint = () => {
     // Complete the payment first
     completePayment();
-    // Then trigger print (small delay to allow state updates)
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    // Print functionality disabled for now
   };
 
   const handleCustomerSelect = (customer: Customer) => {
@@ -275,10 +276,10 @@ export const SalesBillingPage: React.FC = () => {
         }}>
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>** MY PHONE SHOP **</div>
-            <div style={{ fontSize: '11px', marginTop: '2px' }}>Premium Pre-Owned Devices</div>
-            <div style={{ fontSize: '11px' }}>123 Mobile Street, Colombo</div>
-            <div style={{ fontSize: '11px' }}>Ph: 011-2345678 / 077-1234567</div>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>** UNLIMITED MOBILE **</div>
+            <div style={{ fontSize: '11px', marginTop: '2px' }}>Premium Mobile Phones & Accessories</div>
+            <div style={{ fontSize: '11px' }}>123 Main Street, Colombo, Sri Lanka</div>
+            <div style={{ fontSize: '11px' }}>Ph: +94 77 123 4567 / +94 11 234 5678</div>
           </div>
           <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
 
@@ -489,7 +490,7 @@ export const SalesBillingPage: React.FC = () => {
                               </p>
                               {item.warrantyMonths > 0 && (
                                 <p className="text-primary" style={{ fontSize: 'var(--text-body-s)' }}>
-                                  Warranty: {item.warrantyMonths} months (Valid till {getWarrantyExpiry(item.warrantyMonths)})
+                                  {item.warrantyMonths} mo warranty
                                 </p>
                               )}
                             </div>
@@ -879,10 +880,10 @@ export const SalesBillingPage: React.FC = () => {
           }}>
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>** MY PHONE SHOP **</div>
-              <div style={{ fontSize: '11px', marginTop: '2px' }}>Premium Pre-Owned Devices</div>
-              <div style={{ fontSize: '11px' }}>123 Mobile Street, Colombo</div>
-              <div style={{ fontSize: '11px' }}>Ph: 011-2345678 / 077-1234567</div>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>** UNLIMITED MOBILE **</div>
+              <div style={{ fontSize: '11px', marginTop: '2px' }}>Premium Mobile Phones & Accessories</div>
+              <div style={{ fontSize: '11px' }}>123 Main Street, Colombo, Sri Lanka</div>
+              <div style={{ fontSize: '11px' }}>Ph: +94 77 123 4567 / +94 11 234 5678</div>
             </div>
             <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
 

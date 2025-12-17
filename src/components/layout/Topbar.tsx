@@ -10,7 +10,7 @@ export const Topbar: React.FC = () => {
 
   const getPageTitle = () => {
     // You can enhance this to show dynamic titles based on route
-    return 'POS System';
+    return 'Unlimited Mobile';
   };
 
   return (
@@ -19,15 +19,13 @@ export const Topbar: React.FC = () => {
       style={{ left: sidebarCollapsed ? '70px' : '240px' }}
     >
       <div className="flex items-center justify-between w-full">
-        {/* Left: Page Title */}
+        {/* Left: Logo */}
         <div className="flex-shrink-0">
-          <h2 className="text-foreground" style={{ 
-            fontSize: 'var(--text-headline-m)',
-            fontWeight: 'var(--font-weight-semibold)',
-            lineHeight: 'var(--line-height-tight)'
-          }}>
-            {getPageTitle()}
-          </h2>
+          <img 
+            src="/src/assets/looper7-logo.png" 
+            alt="LOOPER7" 
+            className="h-12 w-auto object-contain"
+          />
         </div>
 
         {/* Center: Search Bar */}

@@ -3,6 +3,7 @@ import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Plus, Search, Edit2, Trash2, Package } from 'lucide-react';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
@@ -21,37 +22,37 @@ interface Category {
 const mockCategories: Category[] = [
   {
     id: '1',
-    name: 'Groceries',
-    description: 'Essential food items and daily consumables',
+    name: 'Smartphones',
+    description: 'iPhones, Samsung, OnePlus and other smartphones',
     itemCount: 245,
-    color: '#0d9488',
+    color: '#10b981',
   },
   {
     id: '2',
-    name: 'Beverages',
-    description: 'Drinks, juices, and other beverages',
-    itemCount: 87,
+    name: 'Accessories',
+    description: 'Cases, chargers, cables, and other accessories',
+    itemCount: 487,
     color: '#3b82f6',
   },
   {
     id: '3',
-    name: 'Snacks',
-    description: 'Chips, biscuits, and snack items',
-    itemCount: 156,
+    name: 'Tablets',
+    description: 'iPads and Android tablets',
+    itemCount: 78,
     color: '#8b5cf6',
   },
   {
     id: '4',
-    name: 'Personal Care',
-    description: 'Toiletries and personal hygiene products',
-    itemCount: 98,
+    name: 'Smartwatches',
+    description: 'Apple Watch, Samsung Galaxy Watch, and others',
+    itemCount: 156,
     color: '#f59e0b',
   },
   {
     id: '5',
-    name: 'Household',
-    description: 'Cleaning and household items',
-    itemCount: 73,
+    name: 'Audio',
+    description: 'Headphones, earbuds, and speakers',
+    itemCount: 198,
     color: '#ef4444',
   },
 ];
@@ -124,8 +125,12 @@ export const CategoriesPage: React.FC = () => {
     resetForm();
   };
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const handleDeleteCategory = (id: string) => {
     setCategories(categories.filter((category) => category.id !== id));
+    setDeleteDialogOpen(false);
+    setCategoryToDelete(null);
   };
 
   return (
@@ -203,14 +208,32 @@ export const CategoriesPage: React.FC = () => {
                       <Edit2 className="h-4 w-4 mr-1" />
                       Edit
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteCategory(category.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog open={deleteDialogOpen && categoryToDelete?.id === category.id} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setCategoryToDelete(null); }}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setCategoryToDelete(category); setDeleteDialogOpen(true); }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete <b>{category.name}</b>? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={() => handleDeleteCategory(category.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
@@ -257,14 +280,32 @@ export const CategoriesPage: React.FC = () => {
                           <Button variant="ghost" size="sm" onClick={() => handleEditCategory(category)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteCategory(category.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog open={deleteDialogOpen && categoryToDelete?.id === category.id} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setCategoryToDelete(null); }}>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setCategoryToDelete(category); setDeleteDialogOpen(true); }}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete <b>{category.name}</b>? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={() => handleDeleteCategory(category.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
