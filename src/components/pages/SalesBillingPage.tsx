@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
 import { Textarea } from '../ui/textarea';
@@ -130,6 +131,7 @@ export const SalesBillingPage: React.FC = () => {
     return afterDiscount + taxAmount;
   };
 
+  const totalCost = cart.reduce((sum, item) => sum + item.costPrice * item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalDiscount = cart.reduce((sum, item) => sum + item.discount, 0);
   const taxableAmount = subtotal - totalDiscount;
@@ -138,6 +140,9 @@ export const SalesBillingPage: React.FC = () => {
     return sum + ((itemSubtotal - item.discount) * item.tax) / 100;
   }, 0);
   const grandTotal = taxableAmount; // No tax added
+  const changeAmount = amountReceived && parseFloat(amountReceived) >= grandTotal 
+    ? parseFloat(amountReceived) - grandTotal 
+    : 0;
 
   const getWarrantyExpiry = (months: number) => {
     if (months === 0) return null;
@@ -147,7 +152,18 @@ export const SalesBillingPage: React.FC = () => {
   };
 
   const handlePayment = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0) {
+      toast.error('Cart is empty');
+      return;
+    }
+    if (!paymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
+    if (paymentMethod === 'cash' && (!amountReceived || parseFloat(amountReceived) < grandTotal)) {
+      toast.error('Please enter amount received (must be >= Grand Total)');
+      return;
+    }
     setShowPaymentModal(true);
   };
 
@@ -390,38 +406,38 @@ export const SalesBillingPage: React.FC = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
                 />
-              </div>
 
-              {/* Search Results */}
-              {searchQuery && (
-                <div className="mt-3 border rounded-lg max-h-48 overflow-y-auto">
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => addToCart(product)}
-                        className="w-full px-4 py-3 text-left hover:bg-surface-hover border-b last:border-b-0 flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                            {product.sku} • Stock: {product.stock}
-                          </p>
-                        </div>
-                        <p className="font-medium">Rs {product.price}</p>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-4 py-8 text-center text-muted-foreground">No products found</div>
-                  )}
-                </div>
-              )}
+                {/* Search Results - Positioned absolutely to overlay */}
+                {searchQuery && (
+                  <div className="absolute top-full left-0 right-0 mt-2 border rounded-lg max-h-64 overflow-y-auto bg-background shadow-lg z-50">
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => addToCart(product)}
+                          className="w-full px-4 py-3 text-left hover:bg-surface-hover border-b last:border-b-0 flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                              {product.sku} • Stock: {product.stock}
+                            </p>
+                          </div>
+                          <p className="font-medium">Rs {product.price}</p>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-8 text-center text-muted-foreground">No products found</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
           {/* Cart Items */}
-          <Card>
-            <CardHeader>
+          <Card className="flex flex-col" style={{ height: 'calc(100vh - 15rem)' }}>
+            <CardHeader className="flex-shrink-0 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle>Invoice Items ({cart.length})</CardTitle>
                 {cart.length > 0 && (
@@ -432,23 +448,24 @@ export const SalesBillingPage: React.FC = () => {
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+
+            <CardContent className="flex-1 flex flex-col overflow-hidden p-0 px-6 pb-6">
               {cart.length === 0 ? (
-                <div className="h-96 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg mb-3">
                   <Search className="h-12 w-12 mb-3 opacity-30" />
                   <p>Search and add items to start billing</p>
                 </div>
               ) : (
-                <div className="border rounded-lg">
+                <div className="flex-1 overflow-y-auto border rounded-lg mb-3">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-background z-10">
                       <TableRow>
                         <TableHead>Item</TableHead>
                         <TableHead className="w-28">Cost</TableHead>
                         <TableHead className="w-28">Price</TableHead>
-                        <TableHead className="w-36">Quantity</TableHead>
+                        <TableHead className="w-32">Quantity</TableHead>
                         <TableHead className="w-24">Disc</TableHead>
-                        <TableHead className="w-28 text-right">Total</TableHead>
+                        <TableHead className="w-36 text-right">Total</TableHead>
                         <TableHead className="w-12"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -519,12 +536,53 @@ export const SalesBillingPage: React.FC = () => {
                   </Table>
                 </div>
               )}
+
+              {/* Summary Bar - Aligned with table columns */}
+              <div className="flex-shrink-0 bg-surface-secondary rounded-lg border-2">
+                <table className="w-full">
+                  <tbody>
+                    <tr>
+                      {/* Spacer for Item column */}
+                      <td className="flex-1 p-3"></td>
+                      
+                      {/* Total Cost - aligns with Cost column */}
+                      <td className="w-28 p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-0.5">Total Cost</p>
+                        <p className="text-base font-semibold">Rs {totalCost.toFixed(2)}</p>
+                      </td>
+                      
+                      {/* Total Price - aligns with Price column */}
+                      <td className="w-28 p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-0.5">Total Price</p>
+                        <p className="text-base font-semibold">Rs {subtotal.toFixed(2)}</p>
+                      </td>
+                      
+                      {/* Blank Space - aligns with Quantity column */}
+                      <td className="w-32 p-3"></td>
+                      
+                      {/* Total Discount - aligns with Disc column, extended width */}
+                      <td className="p-3 text-center" colSpan={2}>
+                        <p className="text-xs text-muted-foreground mb-0.5">Total Discount</p>
+                        <p className="text-base font-semibold text-destructive">Rs {totalDiscount.toFixed(2)}</p>
+                      </td>
+                      
+                      {/* Grand Total - compact on the right */}
+                      <td className="p-3 text-right">
+                        <div className="bg-primary/10 rounded-md p-2 inline-block">
+                          <p className="text-xs text-muted-foreground mb-0.5 font-medium">Grand Total</p>
+                          <p className="text-lg font-bold text-primary">Rs {grandTotal.toFixed(2)}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Right: Customer & Payment */}
-        <div className="sticky top-8 h-[calc(100vh-8rem)] overflow-y-auto space-y-4">
+        <div className="flex flex-col gap-6" style={{ height: 'calc(100vh - 15rem)' }}>
           {/* Customer */}
           <Card>
             <CardHeader>
@@ -614,49 +672,8 @@ export const SalesBillingPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Payment Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>Rs {subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Discount</span>
-                  <span className="text-destructive">-Rs {totalDiscount.toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Grand Total</span>
-                  <span className="text-primary" style={{ fontSize: 'var(--text-headline-m)' }}>
-                    Rs {grandTotal.toFixed(2)}
-                  </span>
-                </div>
-                {paymentMethod === 'cash' && amountReceived && parseFloat(amountReceived) >= grandTotal && (
-                  <>
-                    <Separator />
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Amount Received</span>
-                      <span>Rs {parseFloat(amountReceived).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-primary">Change</span>
-                      <span className="text-primary font-semibold" style={{ fontSize: 'var(--text-headline-s)' }}>
-                        Rs {(parseFloat(amountReceived) - grandTotal).toFixed(2)}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Payment Method */}
-          <Card>
+          <Card className="flex-1">
             <CardHeader>
               <CardTitle>Payment Method</CardTitle>
             </CardHeader>
@@ -692,6 +709,7 @@ export const SalesBillingPage: React.FC = () => {
                       placeholder="Enter amount"
                       value={amountReceived}
                       onChange={(e) => setAmountReceived(e.target.value)}
+                      className="text-lg font-semibold"
                     />
                   </div>
                 </div>
@@ -712,72 +730,51 @@ export const SalesBillingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Payment Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Complete Payment</DialogTitle>
-            <DialogDescription>
-              Enter payment details to complete the transaction
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="credit">Credit</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Total Amount</Label>
-              <Input value={`Rs ${grandTotal.toFixed(2)}`} disabled />
-            </div>
-            {paymentMethod === 'cash' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Amount Received</Label>
-                  <Input
-                    type="number"
-                    placeholder="Enter amount"
-                    value={amountReceived}
-                    onChange={(e) => setAmountReceived(e.target.value)}
-                    autoFocus
-                  />
+      {/* Payment Confirmation */}
+      <AlertDialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <AlertDialogContent onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.defaultPrevented) {
+            e.preventDefault();
+            completePayment();
+          }
+        }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Complete Sale</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between py-1">
+                  <span>Payment Method:</span>
+                  <span className="font-semibold">{paymentMethod?.toUpperCase()}</span>
                 </div>
-                {amountReceived && parseFloat(amountReceived) >= grandTotal && (
-                  <div className="p-3 bg-primary/10 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Change to Return:</span>
-                      <span className="text-primary font-medium">
-                        Rs {(parseFloat(amountReceived) - grandTotal).toFixed(2)}
-                      </span>
+                <div className="flex justify-between py-1">
+                  <span>Grand Total:</span>
+                  <span className="font-semibold">Rs {grandTotal.toFixed(2)}</span>
+                </div>
+                {paymentMethod === 'cash' && amountReceived && (
+                  <>
+                    <div className="flex justify-between py-1">
+                      <span>Amount Received:</span>
+                      <span className="font-semibold">Rs {parseFloat(amountReceived).toFixed(2)}</span>
                     </div>
-                  </div>
+                    {parseFloat(amountReceived) > grandTotal && (
+                      <div className="flex justify-between py-1">
+                        <span>Change:</span>
+                        <span className="font-semibold text-green-600">Rs {(parseFloat(amountReceived) - grandTotal).toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPaymentModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={completePayment}
-              disabled={paymentMethod === 'cash' && (!amountReceived || parseFloat(amountReceived) < grandTotal)}
-            >
-              Complete Payment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={completePayment}>
+              Confirm Sale (Press Enter)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add Customer Modal */}
       <Dialog open={showAddCustomerModal} onOpenChange={setShowAddCustomerModal}>
