@@ -10,7 +10,7 @@ export const Topbar: React.FC = () => {
 
   const getPageTitle = () => {
     // You can enhance this to show dynamic titles based on route
-    return 'POS System';
+    return 'Unlimited Mobile';
   };
 
   return (

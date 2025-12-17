@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppShell } from './components/layout/AppShell';
 import { DashboardPage } from './components/pages/DashboardPage';
 import { SalesBillingPage } from './components/pages/SalesBillingPage';
+import { SalesHistoryPage } from './components/pages/SalesHistoryPage';
 import { ItemsListPage } from './components/pages/ItemsListPage';
 import { CategoriesPage } from './components/pages/CategoriesPage';
 import { SuppliersListPage } from './components/pages/SuppliersListPage';
@@ -13,6 +14,7 @@ import { Toaster } from './components/ui/sonner';
 export type Route =
   | 'dashboard'
   | 'sales-billing'
+  | 'sales-history'
   | 'receipt'
   | 'items-list'
   | 'categories'
@@ -66,6 +68,8 @@ export default function App() {
         return <DashboardPage />;
       case 'sales-billing':
         return <SalesBillingPage />;
+      case 'sales-history':
+        return <SalesHistoryPage />;
       case 'receipt':
         return <ReceiptPage />;
       case 'items-list':

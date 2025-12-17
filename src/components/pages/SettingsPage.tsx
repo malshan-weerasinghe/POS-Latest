@@ -13,12 +13,12 @@ import { Separator } from '../ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 
 export const SettingsPage: React.FC = () => {
-  const [storeName, setStoreName] = useState('My Store');
-  const [storeAddress, setStoreAddress] = useState('123 Main Street, City, State 12345');
-  const [storePhone, setStorePhone] = useState('+91 98765 43210');
-  const [storeEmail, setStoreEmail] = useState('store@email.com');
-  const [gstNumber, setGstNumber] = useState('22AAAAA0000A1Z5');
-  const [storePhone2, setStorePhone2] = useState('');
+  const [storeName, setStoreName] = useState('Unlimited Mobile');
+  const [storeAddress, setStoreAddress] = useState('123 Main Street, Colombo, Sri Lanka');
+  const [storePhone, setStorePhone] = useState('+94 77 123 4567');
+  const [storeEmail, setStoreEmail] = useState('info@unlimitedmobile.lk');
+  const [gstNumber, setGstNumber] = useState('');
+  const [storePhone2, setStorePhone2] = useState('+94 11 234 5678');
   
   const [taxRate, setTaxRate] = useState('5');
   const [currency, setCurrency] = useState('INR');
