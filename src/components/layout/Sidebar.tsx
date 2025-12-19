@@ -1,10 +1,10 @@
 import React, { useContext, useState } from 'react';
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Package, 
-  Truck, 
-  Users, 
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Package,
+  Truck,
+  Users,
   Settings,
   ChevronDown,
   ChevronRight,
@@ -25,48 +25,48 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { 
-    id: 'dashboard', 
-    label: 'Dashboard', 
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
     icon: LayoutDashboard,
     route: 'dashboard'
   },
-  { 
-    id: 'sales', 
-    label: 'Sales & Billing', 
+  {
+    id: 'sales',
+    label: 'Sales & Billing',
     icon: ShoppingCart,
     route: 'sales-billing'
   },
-  { 
-    id: 'sales-history', 
-    label: 'Sales History', 
+  {
+    id: 'sales-history',
+    label: 'Sales History',
     icon: History,
     route: 'sales-history'
   },
-  { 
-    id: 'products', 
-    label: 'Products', 
+  {
+    id: 'products',
+    label: 'Products',
     icon: Package,
     children: [
       { id: 'items-list', label: 'Items List', icon: Package, route: 'items-list' },
       { id: 'categories', label: 'Categories', icon: Tags, route: 'categories' },
     ]
   },
-  { 
-    id: 'suppliers', 
-    label: 'Suppliers', 
+  {
+    id: 'suppliers',
+    label: 'Suppliers',
     icon: Truck,
     route: 'suppliers-list'
   },
-  { 
-    id: 'customers', 
-    label: 'Customers', 
+  {
+    id: 'customers',
+    label: 'Customers',
     icon: Users,
     route: 'customers-list'
   },
-  { 
-    id: 'settings', 
-    label: 'Settings', 
+  {
+    id: 'settings',
+    label: 'Settings',
     icon: Settings,
     route: 'settings'
   },
@@ -128,9 +128,9 @@ export const Sidebar: React.FC = () => {
           <Icon className="h-5 w-5 flex-shrink-0" />
           {!sidebarCollapsed && (
             <>
-              <span 
+              <span
                 className="flex-1 text-left"
-                style={{ 
+                style={{
                   fontSize: 'var(--text-body-m)',
                   fontWeight: 'var(--font-weight-medium)',
                   lineHeight: 'var(--line-height-normal)'
@@ -148,13 +148,13 @@ export const Sidebar: React.FC = () => {
             </>
           )}
         </button>
-        
+
         {!sidebarCollapsed && hasChildren && isExpanded && (
           <div className="mt-1 space-y-1">
             {item.children!.map((child) => {
               const ChildIcon = child.icon;
               const isChildActive = child.route === currentRoute;
-              
+
               return (
                 <button
                   key={child.id}
@@ -167,7 +167,7 @@ export const Sidebar: React.FC = () => {
                   )}
                 >
                   <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                  <span style={{ 
+                  <span style={{
                     fontSize: 'var(--text-body-s)',
                     fontWeight: 'var(--font-weight-medium)',
                     lineHeight: 'var(--line-height-normal)'
@@ -196,7 +196,7 @@ export const Sidebar: React.FC = () => {
               <ShoppingCart className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-sidebar-foreground" style={{ 
+              <h1 className="text-sidebar-foreground" style={{
                 fontSize: 'var(--text-subtitle-s)',
                 fontWeight: 'var(--font-weight-semibold)',
                 lineHeight: 'var(--line-height-tight)'
@@ -229,13 +229,13 @@ export const Sidebar: React.FC = () => {
       {!sidebarCollapsed && (
         <div className="p-4 border-t border-sidebar-border">
           <div className="text-center space-y-1">
-            <p className="text-sidebar-foreground/60" style={{ 
+            <p className="text-sidebar-foreground/60" style={{
               fontSize: 'var(--text-caption)',
               lineHeight: 'var(--line-height-normal)'
             }}>
               Simple POS v1.0.0
             </p>
-            <p className="text-sidebar-foreground/40" style={{ 
+            <p className="text-sidebar-foreground/40" style={{
               fontSize: 'var(--text-overline)',
               lineHeight: 'var(--line-height-normal)',
               letterSpacing: '0.05em'

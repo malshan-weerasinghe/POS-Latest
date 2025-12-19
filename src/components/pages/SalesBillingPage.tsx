@@ -2,15 +2,12 @@ import React, { useState, useContext } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Printer, Save, Trash2, Plus, Minus, Search, X, CreditCard, Wallet, Banknote, Smartphone } from 'lucide-react';
+import { Printer, Trash2, Plus, Minus, Search, X, CreditCard, Banknote } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Badge } from '../ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
-import { Separator } from '../ui/separator';
 import { Textarea } from '../ui/textarea';
 import { AppContext } from '../../App';
 import { toast } from 'sonner';
@@ -68,7 +65,7 @@ export const SalesBillingPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [amountReceived, setAmountReceived] = useState('');
-  
+
   // New customer form state
   const [newCustomer, setNewCustomer] = useState({
     firstName: '',
@@ -145,8 +142,8 @@ export const SalesBillingPage: React.FC = () => {
     return sum + ((itemSubtotal - item.discount) * item.tax) / 100;
   }, 0);
   const grandTotal = taxableAmount; // No tax added
-  const changeAmount = amountReceived && parseFloat(amountReceived) >= grandTotal 
-    ? parseFloat(amountReceived) - grandTotal 
+  const changeAmount = amountReceived && parseFloat(amountReceived) >= grandTotal
+    ? parseFloat(amountReceived) - grandTotal
     : 0;
 
   const getWarrantyExpiry = (months: number) => {
@@ -193,12 +190,12 @@ export const SalesBillingPage: React.FC = () => {
       amountReceived: parseFloat(amountReceived),
       customer: selectedCustomer,
     });
-    
+
     // Show success toast
     toast.success('Payment Completed!', {
       description: `Invoice generated for Rs ${grandTotal.toFixed(2)}`,
     });
-    
+
     // Reset
     setCart([]);
     setCustomerSearch('');
@@ -237,7 +234,7 @@ export const SalesBillingPage: React.FC = () => {
 
     // In real app, save to database
     mockCustomers.push(customer);
-    
+
     toast.success('Customer Added!', {
       description: `${customer.name} has been added successfully`,
     });
@@ -245,7 +242,7 @@ export const SalesBillingPage: React.FC = () => {
     // Select the new customer
     setSelectedCustomer(customer);
     setCustomerSearch(customer.phone);
-    
+
     // Reset form and close modal
     setNewCustomer({ firstName: '', lastName: '', phone: '', email: '', address: '' });
     setShowAddCustomerModal(false);
@@ -258,17 +255,17 @@ export const SalesBillingPage: React.FC = () => {
     });
     setCart([]);
     // Navigate to hold bills page
-    navigateTo('hold-bills');
+    // navigateTo('hold-bills');
   };
 
   return (
     <PageTemplate hideHeader>
       {/* Hidden Receipt Template for 80mm Thermal Printer */}
       <div id="thermal-receipt" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-        <div style={{ 
-          width: '80mm', 
-          fontFamily: '"Courier New", monospace', 
-          fontSize: '11px', 
+        <div style={{
+          width: '80mm',
+          fontFamily: '"Courier New", monospace',
+          fontSize: '11px',
           lineHeight: '1.3',
           padding: '2mm',
           color: '#000',
@@ -554,28 +551,28 @@ export const SalesBillingPage: React.FC = () => {
                     <tr>
                       {/* Spacer for Item column */}
                       <td className="flex-1 p-3"></td>
-                      
+
                       {/* Total Cost - aligns with Cost column */}
                       <td className="w-28 p-3 text-center">
                         <p className="text-xs text-muted-foreground mb-0.5">Total Cost</p>
                         <p className="text-base font-semibold">Rs {totalCost.toFixed(2)}</p>
                       </td>
-                      
+
                       {/* Total Price - aligns with Price column */}
                       <td className="w-28 p-3 text-center">
                         <p className="text-xs text-muted-foreground mb-0.5">Total Price</p>
                         <p className="text-base font-semibold">Rs {subtotal.toFixed(2)}</p>
                       </td>
-                      
+
                       {/* Blank Space - aligns with Quantity column */}
                       <td className="w-32 p-3"></td>
-                      
+
                       {/* Total Discount - aligns with Disc column, extended width */}
                       <td className="p-3 text-center" colSpan={2}>
                         <p className="text-xs text-muted-foreground mb-0.5">Total Discount</p>
                         <p className="text-base font-semibold text-destructive">Rs {totalDiscount.toFixed(2)}</p>
                       </td>
-                      
+
                       {/* Grand Total - compact on the right */}
                       <td className="p-3 text-right">
                         <div className="bg-primary/10 rounded-md p-2 inline-block">
@@ -670,9 +667,9 @@ export const SalesBillingPage: React.FC = () => {
                   )}
                 </div>
               )}
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="w-full"
                 onClick={() => setShowAddCustomerModal(true)}
               >
@@ -708,7 +705,7 @@ export const SalesBillingPage: React.FC = () => {
                   <span style={{ fontSize: 'var(--text-body-s)' }}>Card</span>
                 </Button>
               </div>
-              
+
               {/* Cash Payment Input */}
               {paymentMethod === 'cash' && (
                 <div className="space-y-3 pt-2">
@@ -742,7 +739,7 @@ export const SalesBillingPage: React.FC = () => {
 
       {/* Payment Confirmation */}
       <AlertDialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <AlertDialogContent onKeyDown={(e) => {
+        <AlertDialogContent onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
           if (e.key === 'Enter' && !e.defaultPrevented) {
             e.preventDefault();
             completePayment();
@@ -866,10 +863,10 @@ export const SalesBillingPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Invoice Preview (80mm)</DialogTitle>
           </DialogHeader>
-          
-          <div id="invoice-receipt" style={{ 
-            fontFamily: '"Courier New", monospace', 
-            fontSize: '11px', 
+
+          <div id="invoice-receipt" style={{
+            fontFamily: '"Courier New", monospace',
+            fontSize: '11px',
             lineHeight: '1.3',
             padding: '10px',
             border: '1px solid #e5e5e5',
