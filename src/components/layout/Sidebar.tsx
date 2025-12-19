@@ -188,34 +188,35 @@ export const Sidebar: React.FC = () => {
       "h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0 z-50 transition-all duration-300",
       sidebarCollapsed ? "w-[70px]" : "w-[240px]"
     )}>
-      {/* Logo/Brand */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-sidebar-border">
-        {!sidebarCollapsed && (
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
+      {/* Sidebar Header: Shop icon and name (expanded), icon only (collapsed) + collapse/expand button */}
+      <div className="h-16 px-4 flex items-center border-b border-sidebar-border">
+        {sidebarCollapsed ? (
+          <div className="flex-1 flex justify-center">
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center focus:outline-none"
+              title="Expand sidebar"
+            >
               <ShoppingCart className="h-5 w-5 text-sidebar-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-sidebar-foreground" style={{
-                fontSize: 'var(--text-subtitle-s)',
-                fontWeight: 'var(--font-weight-semibold)',
-                lineHeight: 'var(--line-height-tight)'
-              }}>
-                Unlimited Mobile
-              </h1>
-            </div>
+            </button>
           </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 flex-1">
+              <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
+                <ShoppingCart className="h-5 w-5 text-sidebar-primary-foreground" />
+              </div>
+              <span className="text-sidebar-foreground text-lg font-semibold leading-tight whitespace-nowrap">Unlimited Mobile</span>
+            </div>
+            <button
+              onClick={() => setSidebarCollapsed(true)}
+              className="h-8 w-8 rounded-lg hover:bg-sidebar-accent flex items-center justify-center transition-colors ml-2"
+              title="Collapse sidebar"
+            >
+              <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
+            </button>
+          </>
         )}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="h-8 w-8 rounded-lg hover:bg-sidebar-accent flex items-center justify-center transition-colors"
-        >
-          {sidebarCollapsed ? (
-            <Menu className="h-5 w-5 text-sidebar-foreground" />
-          ) : (
-            <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
-          )}
-        </button>
       </div>
 
       {/* Navigation Menu */}
@@ -225,23 +226,20 @@ export const Sidebar: React.FC = () => {
         </div>
       </nav>
 
-      {/* Footer/Version Info */}
+      {/* Footer: Profile and Looper7 logo, only when expanded */}
       {!sidebarCollapsed && (
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="text-center space-y-1">
-            <p className="text-sidebar-foreground/60" style={{
-              fontSize: 'var(--text-caption)',
-              lineHeight: 'var(--line-height-normal)'
-            }}>
-              Simple POS v1.0.0
-            </p>
-            <p className="text-sidebar-foreground/40" style={{
-              fontSize: 'var(--text-overline)',
-              lineHeight: 'var(--line-height-normal)',
-              letterSpacing: '0.05em'
-            }}>
-              1920×1080
-            </p>
+        <div className="p-4 border-t border-sidebar-border flex flex-col gap-2">
+          {/* User Profile */}
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-base">JD</div>
+            <div className="text-left">
+              <p className="text-sidebar-foreground text-sm font-medium leading-tight">John Doe</p>
+              <p className="text-sidebar-foreground/60 text-xs leading-tight">Administrator</p>
+            </div>
+          </div>
+          {/* Looper7 Logo */}
+          <div className="flex justify-center mt-1">
+            <img src="/src/assets/looper7-logo.png" alt="LOOPER7" className="h-12 w-auto object-contain" />
           </div>
         </div>
       )}

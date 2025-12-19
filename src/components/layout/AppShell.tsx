@@ -22,11 +22,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         className="h-screen flex flex-col transition-all duration-300 bg-background"
         style={{ marginLeft: sidebarCollapsed ? '70px' : '240px' }}
       >
-        {/* Topbar - Fixed Top */}
-        <Topbar />
-
         {/* Content Area - Scrollable */}
-        <main className="flex-1 overflow-y-auto mt-16 bg-background">
+        <main className="flex-1 overflow-y-auto bg-background">
           {children}
         </main>
       </div>
