@@ -68,12 +68,9 @@ const validateProduct = [
     .trim()
     .isLength({ min: 2, max: 200 })
     .withMessage('Product name must be between 2-200 characters'),
-  body('sku')
-    .trim()
-    .isLength({ min: 3, max: 50 })
-    .withMessage('SKU must be between 3-50 characters')
-    .matches(/^[A-Z0-9-_]+$/)
-    .withMessage('SKU can only contain uppercase letters, numbers, hyphens, and underscores'),
+  body('supplier_id')
+    .isInt({ min: 1 })
+    .withMessage('Supplier ID is required and must be a positive integer'),
   body('cost_price')
     .isFloat({ min: 0 })
     .withMessage('Cost price must be a positive number'),
@@ -84,6 +81,10 @@ const validateProduct = [
     .optional()
     .isInt({ min: 0 })
     .withMessage('Stock must be a non-negative integer'),
+  body('reorder_level')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('Reorder level must be a non-negative integer'),
   body('category')
     .optional()
     .trim()
@@ -93,6 +94,10 @@ const validateProduct = [
     .optional()
     .isInt({ min: 0, max: 60 })
     .withMessage('Warranty months must be between 0-60'),
+  body('product_id')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Product ID must be a positive integer'),
   handleValidationErrors
 ];
 

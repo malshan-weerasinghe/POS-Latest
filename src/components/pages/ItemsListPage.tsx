@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -12,9 +12,11 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
+import { productsAPI, categoriesAPI, suppliersAPI } from '../../services/api';
+import { SupplierFormModal } from '../modals/SupplierFormModal';
 
 interface Item {
-  id: string;
+  id: number;
   sku: string;
   name: string;
   category: string;
@@ -23,6 +25,7 @@ interface Item {
   costPrice: number;
   sellingPrice: number;
   supplier: string;
+  supplier_name: string;
   barcode: string;
   warrantyMonths: number;
   status: 'in-stock' | 'low-stock' | 'out-of-stock';
@@ -172,18 +175,25 @@ const mockItems: Item[] = [
 ];
 
 export const ItemsListPage: React.FC = () => {
-  const [items, setItems] = useState<Item[]>(mockItems);
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   
-  const [categories, setCategories] = useState(['Smartphones', 'Accessories', 'Tablets', 'Smartwatches']);
-  const [suppliers, setSuppliers] = useState(['Apple Authorized', 'Samsung Official', 'OnePlus Distributor', 'Local Accessories']);
+  const [categories, setCategories] = useState<Array<{id: number, name: string}>>([]);
+  const [suppliers, setSuppliers] = useState<Array<{id: number, name: string}>>([]);
+  const [productSKUs, setProductSKUs] = useState<Array<{id: number, name: string, sku: string, barcode: string, category: string, warranty_months: number}>>([]);
+  
+  const [isNewProduct, setIsNewProduct] = useState(true); // Toggle between new/existing
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   
   const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
   const [supplierFormData, setSupplierFormData] = useState({
@@ -200,7 +210,7 @@ export const ItemsListPage: React.FC = () => {
     name: '',
     category: '',
     stock: '',
-    reorderLevel: '',
+    reorderLevel: '5',
     costPrice: '',
     sellingPrice: '',
     supplier: '',
@@ -208,7 +218,87 @@ export const ItemsListPage: React.FC = () => {
     warrantyMonths: '0',
   });
 
-  const filteredItems = items.filter((item) => {
+  // Load products, categories, suppliers and SKUs on mount
+  useEffect(() => {
+    loadProducts();
+    loadCategories();
+    loadSuppliers();
+    loadProductSKUs();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await productsAPI.getAll();
+      if (response.success) {
+        // Transform backend data to match UI interface
+        const products = response.data?.products || [];
+        const transformedItems = products.map((product: any) => ({
+          id: product.product_supplier_id || product.id,
+          sku: product.sku,
+          name: product.name,
+          category: product.category || 'Uncategorized',
+          stock: product.stock || 0,
+          reorderLevel: product.reorder_level || 5,
+          costPrice: product.cost_price || 0,
+          sellingPrice: product.sale_price || 0,
+          supplier: product.supplier_name || 'N/A',
+          supplier_name: product.supplier_name || 'N/A',
+          barcode: product.barcode || '',
+          warrantyMonths: product.warranty_months || 0,
+          status: product.stock === 0 ? 'out-of-stock' : product.stock <= (product.reorder_level || 5) ? 'low-stock' : 'in-stock'
+        }));
+        setItems(transformedItems);
+      } else {
+        setError('Failed to load products');
+        toast.error('Failed to load products');
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      setError('Failed to load products. Please try again.');
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const response = await categoriesAPI.getAll();
+      if (response.success) {
+        // Categories API returns data directly as array, not nested
+        setCategories(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
+
+  const loadSuppliers = async () => {
+    try {
+      const response = await suppliersAPI.getAll();
+      if (response.success) {
+        const suppliers = response.data?.suppliers || [];
+        setSuppliers(suppliers);
+      }
+    } catch (error) {
+      console.error('Error loading suppliers:', error);
+    }
+  };
+
+  const loadProductSKUs = async () => {
+    try {
+      const response = await productsAPI.getSKUs();
+      if (response.success) {
+        setProductSKUs(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading product SKUs:', error);
+    }
+  };
+
+  const filteredItems = Array.isArray(items) ? items.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -216,13 +306,13 @@ export const ItemsListPage: React.FC = () => {
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
-  });
+  }) : [];
 
   const stats = {
-    total: items.length,
-    inStock: items.filter((i) => i.status === 'in-stock').length,
-    lowStock: items.filter((i) => i.status === 'low-stock').length,
-    outOfStock: items.filter((i) => i.status === 'out-of-stock').length,
+    total: items.length || 0,
+    inStock: Array.isArray(items) ? items.filter((i) => i.status === 'in-stock').length : 0,
+    lowStock: Array.isArray(items) ? items.filter((i) => i.status === 'low-stock').length : 0,
+    outOfStock: Array.isArray(items) ? items.filter((i) => i.status === 'out-of-stock').length : 0,
   };
 
   const resetForm = () => {
@@ -231,47 +321,113 @@ export const ItemsListPage: React.FC = () => {
       name: '',
       category: '',
       stock: '',
-      reorderLevel: '',
+      reorderLevel: '5',
       costPrice: '',
       sellingPrice: '',
       supplier: '',
       barcode: '',
       warrantyMonths: '0',
     });
-  };
-
-  const handleAddCategory = () => {
-    if (!categoryFormData.name) {
-      toast.error('Category name is required');
-      return;
-    }
-    
-    setCategories([...categories, categoryFormData.name]);
-    setFormData({ ...formData, category: categoryFormData.name });
-    toast.success('Category added successfully');
-    
-    setCategoryFormData({ name: '', description: '' });
-    setShowAddCategoryModal(false);
-  };
-
-  const handleAddSupplier = () => {
-    if (!supplierFormData.name) {
-      toast.error('Supplier name is required');
-      return;
-    }
-    
-    setSuppliers([...suppliers, supplierFormData.name]);
-    setFormData({ ...formData, supplier: supplierFormData.name });
-    toast.success('Supplier added successfully');
-    
-    setSupplierFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
-    setShowAddSupplierModal(false);
+    setIsNewProduct(true);
+    setSelectedProductId(null);
   };
 
   const handleAddItem = () => {
     setEditingItem(null);
     resetForm();
     setShowAddModal(true);
+  };
+
+  // Handle product SKU selection
+  const handleProductSKUChange = (productId: string) => {
+    if (productId === 'new') {
+      setIsNewProduct(true);
+      setSelectedProductId(null);
+      setFormData({
+        ...formData,
+        sku: '',
+        name: '',
+        category: '',
+        barcode: '',
+        warrantyMonths: '0',
+      });
+    } else {
+      const product = productSKUs.find(p => p.id === parseInt(productId));
+      if (product) {
+        setIsNewProduct(false);
+        setSelectedProductId(product.id);
+        setFormData({
+          ...formData,
+          sku: product.sku,
+          name: product.name,
+          category: product.category || '',
+          barcode: product.barcode || '',
+          warrantyMonths: product.warranty_months.toString(),
+        });
+      }
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!categoryFormData.name) {
+      toast.error('Category name is required');
+      return;
+    }
+    
+    try {
+      const response = await categoriesAPI.create(categoryFormData);
+      if (response.success) {
+        toast.success('Category added successfully');
+        await loadCategories();
+        setFormData({ ...formData, category: response.data.name });
+        setCategoryFormData({ name: '', description: '' });
+        setShowAddCategoryModal(false);
+      } else {
+        toast.error(response.error || 'Failed to add category');
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Failed to add category');
+    }
+  };
+
+  const handleAddSupplier = async () => {
+    if (!supplierFormData.name || !supplierFormData.contactPerson || !supplierFormData.phone) {
+      toast.error('Supplier name, contact person, and phone are required');
+      return;
+    }
+    
+    try {
+      // Map camelCase to snake_case for API
+      const supplierData = {
+        name: supplierFormData.name.trim(),
+        contact_person: supplierFormData.contactPerson.trim(),
+        phone: supplierFormData.phone.trim(),
+        email: supplierFormData.email?.trim() || undefined,
+        address: supplierFormData.address?.trim() || undefined,
+      };
+      const response = await suppliersAPI.create(supplierData);
+      if (response.success) {
+        toast.success('Supplier added successfully');
+        await loadSuppliers();
+        // Set supplier ID, not name
+        setFormData({ ...formData, supplier: response.data.id.toString() });
+        setSupplierFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+        setShowAddSupplierModal(false);
+      } else {
+        // Show validation errors if available
+        if (response.details && response.details.length > 0) {
+          response.details.forEach(err => {
+            toast.error(`${err.field}: ${err.message}`);
+          });
+        } else {
+          toast.error(response.error || 'Failed to add supplier');
+        }
+      }
+    } catch (error) {
+      console.error('Error adding supplier:', error);
+      toast.error(error.message || 'Failed to add supplier');
+    }
   };
 
   const handleEditItem = (item: Item) => {
@@ -286,61 +442,84 @@ export const ItemsListPage: React.FC = () => {
       sellingPrice: item.sellingPrice.toString(),
       supplier: item.supplier,
       barcode: item.barcode,
+      warrantyMonths: item.warrantyMonths.toString(),
     });
     setShowAddModal(true);
   };
 
-  const handleSaveItem = () => {
-    if (editingItem) {
-      // Update existing item
-      setItems(
-        items.map((item) =>
-          item.id === editingItem.id
-            ? {
-                ...item,
-                ...formData,
-                stock: parseInt(formData.stock),
-                reorderLevel: parseInt(formData.reorderLevel),
-                costPrice: parseFloat(formData.costPrice),
-                sellingPrice: parseFloat(formData.sellingPrice),
-                status:
-                  parseInt(formData.stock) === 0
-                    ? 'out-of-stock'
-                    : parseInt(formData.stock) <= parseInt(formData.reorderLevel)
-                    ? 'low-stock'
-                    : 'in-stock',
-              }
-            : item
-        )
-      );
-    } else {
-      // Add new item
-      const newItem: Item = {
-        id: Date.now().toString(),
-        ...formData,
-        stock: parseInt(formData.stock),
-        reorderLevel: parseInt(formData.reorderLevel),
-        costPrice: parseFloat(formData.costPrice),
-        sellingPrice: parseFloat(formData.sellingPrice),
-        status:
-          parseInt(formData.stock) === 0
-            ? 'out-of-stock'
-            : parseInt(formData.stock) <= parseInt(formData.reorderLevel)
-            ? 'low-stock'
-            : 'in-stock',
-      };
-      setItems([...items, newItem]);
+  const handleSaveItem = async () => {
+    if (!formData.name.trim() || !formData.supplier) {
+      toast.error('Product name and supplier are required');
+      return;
     }
-    setShowAddModal(false);
-    resetForm();
+
+    try {
+      setSubmitting(true);
+      const productData: any = {
+        name: formData.name.trim(),
+        supplier_id: parseInt(formData.supplier),
+        category: formData.category || 'Uncategorized',
+        stock: parseInt(formData.stock) || 0,
+        reorder_level: parseInt(formData.reorderLevel) || 5,
+        cost_price: parseFloat(formData.costPrice) || 0,
+        sale_price: parseFloat(formData.sellingPrice) || 0,
+        warranty_months: parseInt(formData.warrantyMonths) || 0,
+      };
+
+      // If existing product selected, include product_id
+      if (!isNewProduct && selectedProductId) {
+        productData.product_id = selectedProductId;
+      }
+
+      let response;
+      if (editingItem) {
+        response = await productsAPI.update(editingItem.id, productData);
+      } else {
+        response = await productsAPI.create(productData);
+      }
+
+      if (response.success) {
+        toast.success(editingItem ? 'Product updated successfully' : 'Product added successfully');
+        setShowAddModal(false);
+        setEditingItem(null);
+        resetForm();
+        loadProducts();
+        loadProductSKUs(); // Reload SKUs list
+      } else {
+        // Show validation errors if available
+        if (response.details && response.details.length > 0) {
+          response.details.forEach(err => {
+            toast.error(`${err.field}: ${err.message}`);
+          });
+        } else {
+          toast.error(response.error || 'Operation failed');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error(error.message || 'Failed to save product');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
-  const handleDeleteItem = (id: string) => {
-    setItems(items.filter((item) => item.id !== id));
-    setDeleteDialogOpen(false);
-    setItemToDelete(null);
+  const handleDeleteItem = async (id: number) => {
+    try {
+      const response = await productsAPI.delete(id);
+      if (response.success) {
+        toast.success('Product deleted successfully');
+        setDeleteDialogOpen(false);
+        setItemToDelete(null);
+        loadProducts();
+      } else {
+        toast.error(response.error || 'Failed to delete product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Failed to delete product');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -393,7 +572,42 @@ export const ItemsListPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
+        {/* Error State */}
+        {error && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <div>
+                    <p className="font-medium text-red-900">Error loading products</p>
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+                <Button onClick={loadProducts} variant="outline" size="sm">
+                  Try Again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center space-y-3">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <p className="text-muted-foreground">Loading products...</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Filters */}
+        {!loading && !error && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex gap-3">
@@ -412,10 +626,11 @@ export const ItemsListPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Smartphones">Smartphones</SelectItem>
-                  <SelectItem value="Accessories">Accessories</SelectItem>
-                  <SelectItem value="Tablets">Tablets</SelectItem>
-                  <SelectItem value="Smartwatches">Smartwatches</SelectItem>
+                  {Array.isArray(categories) && categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -432,8 +647,10 @@ export const ItemsListPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Stats */}
+        {!loading && !error && (
         <div className="grid grid-cols-4 gap-6">
           <Card>
             <CardContent className="pt-6">
@@ -468,8 +685,10 @@ export const ItemsListPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Items Table */}
+        {!loading && !error && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -484,6 +703,7 @@ export const ItemsListPage: React.FC = () => {
                     <TableHead>SKU</TableHead>
                     <TableHead>Item Name</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Supplier</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Cost Price</TableHead>
                     <TableHead>Selling Price</TableHead>
@@ -505,6 +725,9 @@ export const ItemsListPage: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>{item.category}</TableCell>
+                        <TableCell>
+                          <p className="text-sm">{item.supplier_name}</p>
+                        </TableCell>
                         <TableCell>
                           <div>
                             <p>{item.stock} units</p>
@@ -553,7 +776,7 @@ export const ItemsListPage: React.FC = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         No items found
                       </TableCell>
                     </TableRow>
@@ -563,6 +786,7 @@ export const ItemsListPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Add/Edit Item Modal */}
@@ -575,54 +799,94 @@ export const ItemsListPage: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
-            <div className="space-y-2">
-              <Label>SKU *</Label>
-              <Input
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="e.g., GRC-001"
-              />
+            {/* Product SKU Selection */}
+            <div className="col-span-2 space-y-2">
+              <Label>Product Selection *</Label>
+              <Select 
+                value={isNewProduct ? 'new' : selectedProductId?.toString()} 
+                onValueChange={handleProductSKUChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select existing product or create new" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">➕ Create New Product</SelectItem>
+                  {productSKUs.map((product) => (
+                    <SelectItem key={product.id} value={product.id.toString()}>
+                      {product.sku} - {product.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!isNewProduct && (
+                <p className="text-sm text-muted-foreground">
+                  Adding new supplier batch for existing product
+                </p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label>Barcode *</Label>
-              <Input
-                value={formData.barcode}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                placeholder="e.g., 8901234567890"
-              />
-            </div>
+
+            {/* SKU and Barcode - Read-only if existing, hidden if new */}
+            {!isNewProduct && (
+              <>
+                <div className="space-y-2">
+                  <Label>SKU (Auto-generated)</Label>
+                  <Input
+                    value={formData.sku}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Barcode (Auto-generated)</Label>
+                  <Input
+                    value={formData.barcode}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </>
+            )}
+            
             <div className="col-span-2 space-y-2">
               <Label>Item Name *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., iPhone 13 Pro 128GB"
+                disabled={!isNewProduct}
+                className={!isNewProduct ? 'bg-muted' : ''}
               />
             </div>
             <div className="space-y-2">
               <Label>Category *</Label>
               <div className="flex gap-2">
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger className="flex-1">
+                <Select 
+                  value={formData.category} 
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  disabled={!isNewProduct}
+                >
+                  <SelectTrigger className={`flex-1 ${!isNewProduct ? 'bg-muted' : ''}`}>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
+                    {Array.isArray(categories) && categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowAddCategoryModal(true)}
-                  title="Add new category"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                {isNewProduct && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowAddCategoryModal(true)}
+                    title="Add new category"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
             <div className="space-y-2">
@@ -633,9 +897,9 @@ export const ItemsListPage: React.FC = () => {
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
-                    {suppliers.map((sup) => (
-                      <SelectItem key={sup} value={sup}>
-                        {sup}
+                    {Array.isArray(suppliers) && suppliers.map((sup) => (
+                      <SelectItem key={sup.id} value={sup.id.toString()}>
+                        {sup.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -656,8 +920,9 @@ export const ItemsListPage: React.FC = () => {
               <Select 
                 value={formData.warrantyMonths} 
                 onValueChange={(value) => setFormData({ ...formData, warrantyMonths: value })}
+                disabled={!isNewProduct}
               >
-                <SelectTrigger>
+                <SelectTrigger className={!isNewProduct ? 'bg-muted' : ''}>
                   <SelectValue placeholder="Select warranty period" />
                 </SelectTrigger>
                 <SelectContent>
@@ -714,11 +979,12 @@ export const ItemsListPage: React.FC = () => {
                 setShowAddModal(false);
                 resetForm();
               }}
+              disabled={submitting}
             >
               Cancel
             </Button>
-            <Button onClick={handleSaveItem}>
-              {editingItem ? 'Update Item' : 'Add Item'}
+            <Button onClick={handleSaveItem} disabled={submitting}>
+              {submitting ? 'Saving...' : editingItem ? 'Update Item' : 'Add Item'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -771,75 +1037,18 @@ export const ItemsListPage: React.FC = () => {
       </Dialog>
 
       {/* Add Supplier Modal */}
-      <Dialog open={showAddSupplierModal} onOpenChange={setShowAddSupplierModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Supplier</DialogTitle>
-            <DialogDescription>
-              Enter details for the new supplier
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Supplier Name *</Label>
-              <Input
-                value={supplierFormData.name}
-                onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
-                placeholder="Enter supplier name"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Contact Person</Label>
-              <Input
-                value={supplierFormData.contactPerson}
-                onChange={(e) => setSupplierFormData({ ...supplierFormData, contactPerson: e.target.value })}
-                placeholder="Enter contact person name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone Number</Label>
-              <Input
-                value={supplierFormData.phone}
-                onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
-                placeholder="07x xxx xxxx"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email Address</Label>
-              <Input
-                type="email"
-                value={supplierFormData.email}
-                onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
-                placeholder="supplier@email.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Textarea
-                value={supplierFormData.address}
-                onChange={(e) => setSupplierFormData({ ...supplierFormData, address: e.target.value })}
-                placeholder="Enter complete address"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddSupplierModal(false);
-                setSupplierFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddSupplier}>
-              Add Supplier
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SupplierFormModal
+        open={showAddSupplierModal}
+        onOpenChange={(open) => {
+          setShowAddSupplierModal(open);
+          if (!open) {
+            setSupplierFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+          }
+        }}
+        formData={supplierFormData}
+        onFormDataChange={setSupplierFormData}
+        onSubmit={handleAddSupplier}
+      />
     </PageTemplate>
   );
 };

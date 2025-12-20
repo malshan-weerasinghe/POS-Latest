@@ -50,6 +50,10 @@ const apiRequest = async (endpoint, options = {}) => {
     const data = await response.json();
     
     if (!response.ok) {
+      // Return validation errors if available
+      if (data.details) {
+        return { success: false, error: data.error, details: data.details };
+      }
       throw new Error(data.message || data.error || 'Request failed');
     }
     
@@ -175,6 +179,11 @@ export const productsAPI = {
   // Get categories
   getCategories: async () => {
     return await apiRequest('/products/meta/categories');
+  },
+
+  // Get all product SKUs (for dropdown)
+  getSKUs: async () => {
+    return await apiRequest('/products/meta/skus');
   },
 };
 

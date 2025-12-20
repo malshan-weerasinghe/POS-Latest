@@ -33,14 +33,29 @@ const createTables = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       sku TEXT UNIQUE NOT NULL,
-      cost_price REAL NOT NULL,
-      sale_price REAL NOT NULL,
-      stock INTEGER DEFAULT 0,
+      barcode TEXT,
       category TEXT,
       warranty_months INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    // Product Suppliers junction table (for multiple suppliers per product)
+    `CREATE TABLE IF NOT EXISTS product_suppliers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      supplier_id INTEGER NOT NULL,
+      cost_price REAL NOT NULL,
+      sale_price REAL NOT NULL,
+      stock INTEGER DEFAULT 0,
+      reorder_level INTEGER DEFAULT 5,
+      is_primary INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+      FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+      UNIQUE(product_id, supplier_id)
     )`,
 
     // Customers table

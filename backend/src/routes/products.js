@@ -3,43 +3,66 @@ const router = express.Router();
 const database = require('../models/database');
 const { authenticate, adminOnly, posUser } = require('../middleware/auth');
 const { validateProduct, validateId, validatePagination } = require('../middleware/validation');
+const { generateSKU, generateBarcode } = require('../utils/productUtils');
 
-// Get all products with search and pagination
+// Get all products with suppliers (aggregated view for POS)
 router.get('/', authenticate, posUser, validatePagination, async (req, res) => {
   try {
     const { search = '', category = '', page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
     
     let query = `
-      SELECT * FROM products 
-      WHERE is_active = 1
+      SELECT 
+        p.id,
+        p.name,
+        p.sku,
+        p.barcode,
+        p.category,
+        p.warranty_months,
+        ps.stock,
+        ps.sale_price,
+        ps.cost_price,
+        ps.reorder_level,
+        ps.supplier_id,
+        s.name as supplier_name,
+        ps.id as product_supplier_id,
+        p.created_at,
+        p.updated_at
+      FROM products p
+      LEFT JOIN product_suppliers ps ON p.id = ps.product_id
+      LEFT JOIN suppliers s ON ps.supplier_id = s.id
+      WHERE p.is_active = 1
     `;
+    
     let countQuery = `
-      SELECT COUNT(*) as total FROM products 
-      WHERE is_active = 1
+      SELECT COUNT(*) as total 
+      FROM products p
+      LEFT JOIN product_suppliers ps ON p.id = ps.product_id
+      WHERE p.is_active = 1
     `;
+    
     const params = [];
     const countParams = [];
     
     // Add search filter
     if (search) {
-      query += ` AND (name LIKE ? OR sku LIKE ?)`;
-      countQuery += ` AND (name LIKE ? OR sku LIKE ?)`;
+      query += ` AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)`;
+      countQuery += ` AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)`;
       const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm);
-      countParams.push(searchTerm, searchTerm);
+      params.push(searchTerm, searchTerm, searchTerm);
+      countParams.push(searchTerm, searchTerm, searchTerm);
     }
     
     // Add category filter
     if (category) {
-      query += ` AND category = ?`;
-      countQuery += ` AND category = ?`;
+      query += ` AND p.category = ?`;
+      countQuery += ` AND p.category = ?`;
       params.push(category);
       countParams.push(category);
     }
     
-    // Add ordering and pagination
-    query += ` ORDER BY name ASC LIMIT ? OFFSET ?`;
+    // Add ordering/pagination
+    query += ` ORDER BY p.name ASC, s.name ASC LIMIT ? OFFSET ?`;
     params.push(parseInt(limit), parseInt(offset));
     
     const [products, countResult] = await Promise.all([
@@ -65,6 +88,26 @@ router.get('/', authenticate, posUser, validatePagination, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch products',
+      message: error.message
+    });
+  }
+});
+
+// Get all products (SKUs only) for dropdown
+router.get('/meta/skus', authenticate, posUser, async (req, res) => {
+  try {
+    const products = await database.all(
+      'SELECT id, name, sku, barcode, category, warranty_months FROM products WHERE is_active = 1 ORDER BY name ASC'
+    );
+    
+    res.json({
+      success: true,
+      data: products
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch product SKUs',
       message: error.message
     });
   }
@@ -134,39 +177,72 @@ router.get('/search/:query', authenticate, posUser, async (req, res) => {
   }
 });
 
-// Create new product (Admin only)
+// Create new product with supplier (Admin only)
 router.post('/', authenticate, adminOnly, validateProduct, async (req, res) => {
   try {
-    const { name, sku, cost_price, sale_price, stock = 0, category = '', warranty_months = 0 } = req.body;
+    const { 
+      product_id, // Optional: for adding to existing product
+      name, 
+      supplier_id,
+      cost_price, 
+      sale_price, 
+      stock = 0, 
+      reorder_level = 5,
+      category = '', 
+      warranty_months = 0 
+    } = req.body;
     
-    // Check if SKU already exists
-    const existingProduct = await database.get(
-      'SELECT id FROM products WHERE sku = ?',
-      [sku]
+    let productId = product_id;
+    
+    // If no product_id provided, create new product
+    if (!productId) {
+      // Generate SKU and barcode
+      const sku = await generateSKU(database, name, category);
+      const barcode = await generateBarcode(database);
+      
+      const result = await database.run(
+        `INSERT INTO products (name, sku, barcode, category, warranty_months)
+         VALUES (?, ?, ?, ?, ?)`,
+        [name, sku, barcode, category, warranty_months]
+      );
+      
+      productId = result.lastID;
+    }
+    
+    // Check if this supplier already supplies this product
+    const existingLink = await database.get(
+      'SELECT id FROM product_suppliers WHERE product_id = ? AND supplier_id = ?',
+      [productId, supplier_id]
     );
     
-    if (existingProduct) {
+    if (existingLink) {
       return res.status(409).json({
         success: false,
-        error: 'SKU already exists'
+        error: 'This supplier already supplies this product'
       });
     }
     
-    const result = await database.run(
-      `INSERT INTO products (name, sku, cost_price, sale_price, stock, category, warranty_months)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [name, sku, cost_price, sale_price, stock, category, warranty_months]
+    // Add supplier-product link
+    await database.run(
+      `INSERT INTO product_suppliers (product_id, supplier_id, cost_price, sale_price, stock, reorder_level)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [productId, supplier_id, cost_price, sale_price, stock, reorder_level]
     );
     
-    const newProduct = await database.get(
-      'SELECT * FROM products WHERE id = ?',
-      [result.lastID]
+    // Get the complete product with supplier info
+    const product = await database.get(
+      `SELECT p.*, ps.cost_price, ps.sale_price, ps.stock, ps.reorder_level, s.name as supplier_name
+       FROM products p
+       JOIN product_suppliers ps ON p.id = ps.product_id
+       JOIN suppliers s ON ps.supplier_id = s.id
+       WHERE p.id = ? AND ps.supplier_id = ?`,
+      [productId, supplier_id]
     );
     
     res.status(201).json({
       success: true,
-      message: 'Product created successfully',
-      data: newProduct
+      message: product_id ? 'Supplier added to product successfully' : 'Product created successfully',
+      data: product
     });
   } catch (error) {
     res.status(500).json({

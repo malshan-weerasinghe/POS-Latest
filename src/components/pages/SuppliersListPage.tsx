@@ -6,13 +6,10 @@ import { Plus, Download, Upload, Search, Edit2, Trash2, Phone, Mail, MapPin, Bui
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Textarea } from '../ui/textarea';
 import { suppliersAPI } from '../../services/api';
 import { toast } from 'sonner';
+import { SupplierFormModal } from '../modals/SupplierFormModal';
 
 interface Supplier {
   id: string;
@@ -43,11 +40,11 @@ export const SuppliersListPage: React.FC = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    contact_person: '',
+    contactPerson: '',
     phone: '',
     email: '',
     address: '',
-    payment_terms: 'Net 30',
+    paymentTerms: 'Net 30',
   });
 
   // Load suppliers data
@@ -132,11 +129,10 @@ export const SuppliersListPage: React.FC = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      contact_person: '',
+      contactPerson: '',
       phone: '',
       email: '',
       address: '',
-      payment_terms: 'Net 30',
     });
   };
 
@@ -150,17 +146,16 @@ export const SuppliersListPage: React.FC = () => {
     setEditingSupplier(supplier);
     setFormData({
       name: supplier.name,
-      contact_person: supplier.contact_person || supplier.contactPerson || '',
+      contactPerson: supplier.contact_person || supplier.contactPerson || '',
       phone: supplier.phone,
       email: supplier.email || '',
       address: supplier.address || '',
-      payment_terms: supplier.payment_terms || 'Net 30',
     });
     setShowAddModal(true);
   };
 
   const handleSaveSupplier = async () => {
-    if (!formData.name.trim() || !formData.contact_person.trim() || !formData.phone.trim()) {
+    if (!formData.name.trim() || !formData.contactPerson.trim() || !formData.phone.trim()) {
       toast.error('Name, contact person, and phone are required');
       return;
     }
@@ -175,11 +170,10 @@ export const SuppliersListPage: React.FC = () => {
       setSubmitting(true);
       const supplierData = {
         name: formData.name.trim(),
-        contact_person: formData.contact_person.trim(),
+        contact_person: formData.contactPerson.trim(),
         phone: formData.phone.trim(),
         email: formData.email.trim() || undefined,
         address: formData.address.trim() || undefined,
-        payment_terms: formData.payment_terms,
       };
 
       let response;
@@ -297,7 +291,6 @@ export const SuppliersListPage: React.FC = () => {
                       <TableHead>Supplier Name</TableHead>
                       <TableHead>Contact Person</TableHead>
                       <TableHead>Contact Details</TableHead>
-                      <TableHead>Payment Terms</TableHead>
                       <TableHead>Total Orders</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -338,9 +331,6 @@ export const SuppliersListPage: React.FC = () => {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{supplier.payment_terms || supplier.paymentTerms || 'Net 30'}</Badge>
-                          </TableCell>
                           <TableCell>{supplier.totalOrders || 0}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
@@ -361,7 +351,7 @@ export const SuppliersListPage: React.FC = () => {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={5} className="text-center py-8">
                           <div className="flex flex-col items-center justify-center space-y-2">
                             <Building2 className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">
@@ -385,95 +375,15 @@ export const SuppliersListPage: React.FC = () => {
       </div>
 
       {/* Add/Edit Supplier Modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
-            <DialogDescription>
-              {editingSupplier ? 'Update supplier details' : 'Enter details for the new supplier'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Supplier Name *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter supplier name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Contact Person *</Label>
-              <Input
-                value={formData.contact_person}
-                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                placeholder="Enter contact person name"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Phone Number *</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+91 98765 43210"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Email Address</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="supplier@email.com"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Payment Terms *</Label>
-              <Select value={formData.payment_terms} onValueChange={(value) => setFormData({ ...formData, payment_terms: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="COD">Cash on Delivery (COD)</SelectItem>
-                  <SelectItem value="Net 15">Net 15 Days</SelectItem>
-                  <SelectItem value="Net 30">Net 30 Days</SelectItem>
-                  <SelectItem value="Net 45">Net 45 Days</SelectItem>
-                  <SelectItem value="Net 60">Net 60 Days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Textarea
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="Enter complete address"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddModal(false);
-                resetForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveSupplier} 
-              disabled={submitting}
-              className="min-w-24"
-            >
-              {submitting ? 'Saving...' : editingSupplier ? 'Update Supplier' : 'Add Supplier'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SupplierFormModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        formData={formData}
+        onFormDataChange={setFormData}
+        onSubmit={handleSaveSupplier}
+        submitting={submitting}
+        editMode={!!editingSupplier}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingSupplier} onOpenChange={() => setDeletingSupplier(null)}>
