@@ -149,17 +149,30 @@ router.get('/search/:query', authenticate, posUser, async (req, res) => {
     const { query } = req.params;
     const searchTerm = `%${query}%`;
     
+    // Get products with aggregated stock from all suppliers
     const products = await database.all(
-      `SELECT * FROM products 
-       WHERE is_active = 1 
-       AND (name LIKE ? OR sku LIKE ?) 
+      `SELECT 
+         p.id,
+         p.sku,
+         p.name,
+         p.barcode,
+         p.category,
+         p.warranty_months,
+         COALESCE(SUM(ps.stock), 0) as stock,
+         COALESCE(MIN(ps.cost_price), 0) as cost_price,
+         COALESCE(MIN(ps.sale_price), 0) as sale_price
+       FROM products p
+       LEFT JOIN product_suppliers ps ON p.id = ps.product_id
+       WHERE p.is_active = 1 
+       AND (p.name LIKE ? OR p.sku LIKE ?) 
+       GROUP BY p.id, p.sku, p.name, p.barcode, p.category, p.warranty_months
        ORDER BY 
          CASE 
-           WHEN name LIKE ? THEN 1
-           WHEN sku LIKE ? THEN 2
+           WHEN p.name LIKE ? THEN 1
+           WHEN p.sku LIKE ? THEN 2
            ELSE 3
          END,
-         name ASC
+         p.name ASC
        LIMIT 10`,
       [searchTerm, searchTerm, `${query}%`, `${query}%`]
     );
@@ -256,54 +269,65 @@ router.post('/', authenticate, adminOnly, validateProduct, async (req, res) => {
 // Update product (Admin only)
 router.put('/:id', authenticate, adminOnly, validateId, validateProduct, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, sku, cost_price, sale_price, stock, category, warranty_months } = req.body;
+    const { id } = req.params; // This is product_supplier_id
+    const { name, category, warranty_months, supplier_id, cost_price, sale_price, stock, reorder_level, product_id } = req.body;
     
-    // Check if product exists
-    const existingProduct = await database.get(
-      'SELECT * FROM products WHERE id = ? AND is_active = 1',
+    // Check if product_supplier record exists
+    const existingRecord = await database.get(
+      'SELECT ps.*, p.id as product_id, p.sku FROM product_suppliers ps JOIN products p ON ps.product_id = p.id WHERE ps.id = ?',
       [id]
     );
     
-    if (!existingProduct) {
+    if (!existingRecord) {
       return res.status(404).json({
         success: false,
-        error: 'Product not found'
+        error: 'Product supplier record not found'
       });
     }
-    
-    // Check if SKU is being changed and if it conflicts with another product
-    if (sku !== existingProduct.sku) {
-      const skuConflict = await database.get(
-        'SELECT id FROM products WHERE sku = ? AND id != ?',
-        [sku, id]
-      );
-      
-      if (skuConflict) {
-        return res.status(409).json({
-          success: false,
-          error: 'SKU already exists'
-        });
-      }
-    }
-    
+
+    // Update product metadata (name, category, warranty)
     await database.run(
       `UPDATE products 
-       SET name = ?, sku = ?, cost_price = ?, sale_price = ?, stock = ?, 
-           category = ?, warranty_months = ?, updated_at = CURRENT_TIMESTAMP
+       SET name = ?, category = ?, warranty_months = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [name, sku, cost_price, sale_price, stock, category, warranty_months, id]
+      [name, category, warranty_months, existingRecord.product_id]
     );
     
-    const updatedProduct = await database.get(
-      'SELECT * FROM products WHERE id = ?',
+    // Update product_suppliers record (pricing, stock, supplier)
+    await database.run(
+      `UPDATE product_suppliers 
+       SET supplier_id = ?, cost_price = ?, sale_price = ?, stock = ?, reorder_level = ?
+       WHERE id = ?`,
+      [supplier_id, cost_price, sale_price, stock, reorder_level, id]
+    );
+    
+    // Get updated record with all details
+    const updatedRecord = await database.get(
+      `SELECT 
+        p.id,
+        p.name,
+        p.sku,
+        p.barcode,
+        p.category,
+        p.warranty_months,
+        ps.stock,
+        ps.sale_price,
+        ps.cost_price,
+        ps.reorder_level,
+        ps.supplier_id,
+        s.name as supplier_name,
+        ps.id as product_supplier_id
+      FROM products p
+      JOIN product_suppliers ps ON p.id = ps.product_id
+      LEFT JOIN suppliers s ON ps.supplier_id = s.id
+      WHERE ps.id = ?`,
       [id]
     );
     
     res.json({
       success: true,
       message: 'Product updated successfully',
-      data: updatedProduct
+      data: updatedRecord
     });
   } catch (error) {
     res.status(500).json({

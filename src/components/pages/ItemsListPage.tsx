@@ -17,6 +17,8 @@ import { SupplierFormModal } from '../modals/SupplierFormModal';
 
 interface Item {
   id: number;
+  product_id: number;
+  supplier_id: number;
   sku: string;
   name: string;
   category: string;
@@ -175,6 +177,11 @@ const mockItems: Item[] = [
 ];
 
 export const ItemsListPage: React.FC = () => {
+  // Format number with commas for LKR currency
+  const formatLKR = (amount: number): string => {
+    return amount.toLocaleString('en-LK');
+  };
+
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -236,6 +243,8 @@ export const ItemsListPage: React.FC = () => {
         const products = response.data?.products || [];
         const transformedItems = products.map((product: any) => ({
           id: product.product_supplier_id || product.id,
+          product_id: product.id,
+          supplier_id: product.supplier_id,
           sku: product.sku,
           name: product.name,
           category: product.category || 'Uncategorized',
@@ -307,6 +316,15 @@ export const ItemsListPage: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   }) : [];
+
+  // Group items by SKU for merged cell display
+  const groupedItems = filteredItems.reduce((acc, item) => {
+    if (!acc[item.sku]) {
+      acc[item.sku] = [];
+    }
+    acc[item.sku].push(item);
+    return acc;
+  }, {} as Record<string, typeof filteredItems>);
 
   const stats = {
     total: items.length || 0,
@@ -432,6 +450,8 @@ export const ItemsListPage: React.FC = () => {
 
   const handleEditItem = (item: Item) => {
     setEditingItem(item);
+    setIsNewProduct(false);
+    setSelectedProductId(item.product_id);
     setFormData({
       sku: item.sku,
       name: item.name,
@@ -440,7 +460,7 @@ export const ItemsListPage: React.FC = () => {
       reorderLevel: item.reorderLevel.toString(),
       costPrice: item.costPrice.toString(),
       sellingPrice: item.sellingPrice.toString(),
-      supplier: item.supplier,
+      supplier: item.supplier_id.toString(),
       barcode: item.barcode,
       warrantyMonths: item.warrantyMonths.toString(),
     });
@@ -473,6 +493,7 @@ export const ItemsListPage: React.FC = () => {
 
       let response;
       if (editingItem) {
+        // Use the product_supplier junction table ID for updates
         response = await productsAPI.update(editingItem.id, productData);
       } else {
         response = await productsAPI.create(productData);
@@ -703,8 +724,9 @@ export const ItemsListPage: React.FC = () => {
                     <TableHead>SKU</TableHead>
                     <TableHead>Item Name</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Total Stock</TableHead>
                     <TableHead>Supplier</TableHead>
-                    <TableHead>Stock</TableHead>
+                    <TableHead>Supplier Stock</TableHead>
                     <TableHead>Cost Price</TableHead>
                     <TableHead>Selling Price</TableHead>
                     <TableHead>Status</TableHead>
@@ -713,41 +735,61 @@ export const ItemsListPage: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredItems.length > 0 ? (
-                    filteredItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.sku}</TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                              {item.barcode}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell>
-                          <p className="text-sm">{item.supplier_name}</p>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p>{item.stock} units</p>
-                            <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                              Reorder at {item.reorderLevel}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>₹{item.costPrice}</TableCell>
-                        <TableCell>₹{item.sellingPrice}</TableCell>
-                        <TableCell>{getStatusBadge(item.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => handleEditItem(item)}>
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog open={deleteDialogOpen && itemToDelete?.id === item.id} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setItemToDelete(null); }}>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
+                    Object.entries(groupedItems).map(([sku, skuItems]) => {
+                      const totalStock = skuItems.reduce((sum, item) => sum + item.stock, 0);
+                      const firstItem = skuItems[0];
+                      
+                      return skuItems.map((item, index) => (
+                        <TableRow key={item.id}>
+                          {/* Merged cells - only show for first row of each SKU */}
+                          {index === 0 && (
+                            <>
+                              <TableCell rowSpan={skuItems.length} className="font-medium align-top bg-muted/30 border-r-2">
+                                {item.sku}
+                              </TableCell>
+                              <TableCell rowSpan={skuItems.length} className="align-top bg-muted/30 border-r-2">
+                                <div>
+                                  <p className="font-medium">{item.name}</p>
+                                  <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                                    {item.barcode}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell rowSpan={skuItems.length} className="align-top bg-muted/30 border-r-2">
+                                {item.category}
+                              </TableCell>
+                              <TableCell rowSpan={skuItems.length} className="align-top bg-muted/30 border-r-2">
+                                <div>
+                                  <p className="font-semibold text-lg text-primary">{totalStock} units</p>
+                                </div>
+                              </TableCell>
+                            </>
+                          )}
+                          
+                          {/* Supplier-specific cells - show for every row */}
+                          <TableCell>
+                            <p className="text-sm">{item.supplier_name}</p>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p>{item.stock} units</p>
+                              <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                                Reorder at {item.reorderLevel}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>LKR {formatLKR(item.costPrice)}</TableCell>
+                          <TableCell>LKR {formatLKR(item.sellingPrice)}</TableCell>
+                          <TableCell>{getStatusBadge(item.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditItem(item)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog open={deleteDialogOpen && itemToDelete?.id === item.id} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setItemToDelete(null); }}>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
                                   size="sm"
                                   onClick={() => { setItemToDelete(item); setDeleteDialogOpen(true); }}
                                   className="text-destructive hover:text-destructive"
@@ -773,10 +815,11 @@ export const ItemsListPage: React.FC = () => {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                      ));
+                    })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                         No items found
                       </TableCell>
                     </TableRow>

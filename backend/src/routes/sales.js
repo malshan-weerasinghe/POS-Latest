@@ -217,11 +217,37 @@ router.post('/', authenticate, posUser, validateSale, async (req, res) => {
           [sale_id, item.product_id, item.quantity, item.unit_price, item.discount || 0, line_total]
         );
         
-        // Update product stock
-        await database.run(
-          'UPDATE products SET stock = stock - ? WHERE id = ?',
-          [item.quantity, item.product_id]
+        // Update product stock from product_suppliers table
+        // Strategy: Reduce from suppliers with available stock, prioritizing by lowest cost (FIFO-like)
+        let remainingQty = item.quantity;
+        
+        // Get all suppliers for this product with available stock, ordered by cost price (lowest first)
+        const suppliers = await database.all(
+          `SELECT ps.id, ps.stock, ps.cost_price 
+           FROM product_suppliers ps
+           WHERE ps.product_id = ? AND ps.stock > 0
+           ORDER BY ps.cost_price ASC`,
+          [item.product_id]
         );
+        
+        // Reduce stock from each supplier until quantity is fulfilled
+        for (const supplier of suppliers) {
+          if (remainingQty <= 0) break;
+          
+          const qtyToDeduct = Math.min(remainingQty, supplier.stock);
+          
+          await database.run(
+            'UPDATE product_suppliers SET stock = stock - ? WHERE id = ?',
+            [qtyToDeduct, supplier.id]
+          );
+          
+          remainingQty -= qtyToDeduct;
+        }
+        
+        // If we couldn't fulfill the full quantity, rollback
+        if (remainingQty > 0) {
+          throw new Error(`Insufficient stock for product ID ${item.product_id}. Missing ${remainingQty} units.`);
+        }
       }
       
       await database.run('COMMIT');

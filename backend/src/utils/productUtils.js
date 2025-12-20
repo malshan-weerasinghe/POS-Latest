@@ -1,14 +1,14 @@
 // Generate unique SKU
 const generateSKU = async (database, productName, category) => {
-  // Create prefix from category (first 3 letters) and product name (first 3 letters)
-  const categoryPrefix = (category || 'GEN').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
-  const namePrefix = productName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
-  const basePrefix = categoryPrefix + namePrefix;
+  // Create shorter prefix from category (first 2 letters) and product name (first 2 letters)
+  const categoryPrefix = (category || 'GN').substring(0, 2).toUpperCase().replace(/[^A-Z]/g, '');
+  const namePrefix = productName.substring(0, 2).toUpperCase().replace(/[^A-Z]/g, '');
+  const basePrefix = `${categoryPrefix}-${namePrefix}`;
   
   // Find the next available number
   const existingSkus = await database.all(
     'SELECT sku FROM products WHERE sku LIKE ? ORDER BY sku DESC LIMIT 1',
-    [`${basePrefix}%`]
+    [`${basePrefix}-%`]
   );
   
   let nextNumber = 1;
@@ -20,7 +20,8 @@ const generateSKU = async (database, productName, category) => {
     }
   }
   
-  return `${basePrefix}${String(nextNumber).padStart(4, '0')}`;
+  // Use 3 digits for sequential number (supports up to 999 items per category-name combo)
+  return `${basePrefix}-${String(nextNumber).padStart(3, '0')}`;
 };
 
 // Generate barcode (EAN-13 format)
