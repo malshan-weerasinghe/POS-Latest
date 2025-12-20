@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -10,63 +10,57 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { categoriesAPI } from '../../services/api';
+import { toast } from 'sonner';
 
 interface Category {
-  id: string;
+  id: number | string;
   name: string;
-  description: string;
-  itemCount: number;
-  color: string;
+  description?: string;
+  color?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-const mockCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Smartphones',
-    description: 'iPhones, Samsung, OnePlus and other smartphones',
-    itemCount: 245,
-    color: '#10b981',
-  },
-  {
-    id: '2',
-    name: 'Accessories',
-    description: 'Cases, chargers, cables, and other accessories',
-    itemCount: 487,
-    color: '#3b82f6',
-  },
-  {
-    id: '3',
-    name: 'Tablets',
-    description: 'iPads and Android tablets',
-    itemCount: 78,
-    color: '#8b5cf6',
-  },
-  {
-    id: '4',
-    name: 'Smartwatches',
-    description: 'Apple Watch, Samsung Galaxy Watch, and others',
-    itemCount: 156,
-    color: '#f59e0b',
-  },
-  {
-    id: '5',
-    name: 'Audio',
-    description: 'Headphones, earbuds, and speakers',
-    itemCount: 198,
-    color: '#ef4444',
-  },
-];
-
 export const CategoriesPage: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    color: '#0d9488',
   });
+
+  // Load categories on component mount
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await categoriesAPI.getAll();
+      if (response.success) {
+        setCategories(response.data || []);
+      } else {
+        setError('Failed to load categories');
+        toast.error('Failed to load categories');
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      setError('Failed to load categories. Please try again.');
+      toast.error('Failed to load categories');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredCategories = categories.filter((category) =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -94,39 +88,63 @@ export const CategoriesPage: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleSaveCategory = () => {
-    if (editingCategory) {
-      setCategories(
-        categories.map((category) =>
-          category.id === editingCategory.id
-            ? {
-                ...category,
-                ...formData,
-              }
-            : category
-        )
-      );
-    } else {
-      const colors = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        ...formData,
-        itemCount: 0,
-        color: colors[Math.floor(Math.random() * colors.length)],
-      };
-      setCategories([...categories, newCategory]);
+  const handleSaveCategory = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Category name is required');
+      return;
     }
-    setShowAddModal(false);
-    resetForm();
+
+    try {
+      setSubmitting(true);
+      const categoryData = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        color: formData.color || '#0d9488',
+      };
+
+      let response;
+      if (editingCategory) {
+        response = await categoriesAPI.update(editingCategory.id, categoryData);
+      } else {
+        response = await categoriesAPI.create(categoryData);
+      }
+
+      if (response.success) {
+        toast.success(editingCategory ? 'Category updated successfully' : 'Category added successfully');
+        setShowAddModal(false);
+        setEditingCategory(null);
+        resetForm();
+        loadCategories();
+      } else {
+        toast.error(response.error || 'Operation failed');
+      }
+    } catch (error) {
+      console.error('Error saving category:', error);
+      toast.error('Failed to save category');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string | number) => {
+    try {
+      const response = await categoriesAPI.delete(id);
+      if (response.success) {
+        toast.success('Category deleted successfully');
+        setDeleteDialogOpen(false);
+        setCategoryToDelete(null);
+        loadCategories();
+      } else {
+        toast.error(response.error || 'Failed to delete category');
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category');
+    }
   };
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
-  const handleDeleteCategory = (id: string) => {
-    setCategories(categories.filter((category) => category.id !== id));
-    setDeleteDialogOpen(false);
-    setCategoryToDelete(null);
-  };
 
   return (
     <PageTemplate
@@ -160,75 +178,92 @@ export const CategoriesPage: React.FC = () => {
         {/* Categories Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Categories</CardTitle>
+            <CardTitle>All Categories ({filteredCategories.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Category Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Item Count</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCategories.map((category) => (
-                    <TableRow key={category.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="h-8 w-8 rounded flex items-center justify-center"
-                            style={{ backgroundColor: `${category.color}15` }}
-                          >
-                            <Package className="h-4 w-4" style={{ color: category.color }} />
-                          </div>
-                          <span className="font-medium">{category.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{category.description}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{category.itemCount} items</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleEditCategory(category)}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog open={deleteDialogOpen && categoryToDelete?.id === category.id} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setCategoryToDelete(null); }}>
-                            <AlertDialogTrigger asChild>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-muted-foreground">Loading categories...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <p className="text-red-600 mb-2">{error}</p>
+                  <Button onClick={loadCategories} variant="outline" size="sm">
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Category Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCategories.length > 0 ? (
+                      filteredCategories.map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="h-8 w-8 rounded flex items-center justify-center"
+                                style={{ backgroundColor: `${category.color || '#0d9488'}15` }}
+                              >
+                                <Package className="h-4 w-4" style={{ color: category.color || '#0d9488' }} />
+                              </div>
+                              <span className="font-medium">{category.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{category.description || '-'}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditCategory(category)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => { setCategoryToDelete(category); setDeleteDialogOpen(true); }}
+                                onClick={() => {
+                                  setCategoryToDelete(category);
+                                  setDeleteDialogOpen(true);
+                                }}
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Category</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete <b>{category.name}</b>? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={() => handleDeleteCategory(category.id)}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8">
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <Package className="h-8 w-8 text-muted-foreground" />
+                            <p className="text-muted-foreground">
+                              {searchQuery ? 'No categories match your search' : 'No categories found'}
+                            </p>
+                            {!searchQuery && (
+                              <Button onClick={handleAddCategory} size="sm">
+                                Add First Category
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -260,6 +295,23 @@ export const CategoriesPage: React.FC = () => {
                 rows={3}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="h-10 w-20 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  placeholder="#0d9488"
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -271,8 +323,12 @@ export const CategoriesPage: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button onClick={handleSaveCategory} disabled={!formData.name}>
-              {editingCategory ? 'Update Category' : 'Add Category'}
+            <Button 
+              onClick={handleSaveCategory} 
+              disabled={!formData.name || submitting}
+              className="min-w-24"
+            >
+              {submitting ? 'Saving...' : editingCategory ? 'Update Category' : 'Add Category'}
             </Button>
           </DialogFooter>
         </DialogContent>

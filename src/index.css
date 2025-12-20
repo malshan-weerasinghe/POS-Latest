@@ -424,6 +424,27 @@
     pointer-events: none;
   }
 
+  /* Toast notification styling */
+  [data-sonner-toast][data-type="success"] {
+    background-color: rgb(240 253 244) !important;
+    border-color: rgb(187 247 208) !important;
+    color: rgb(20 83 45) !important;
+  }
+
+  [data-sonner-toast][data-type="success"] [data-icon] {
+    color: rgb(22 163 74) !important;
+  }
+
+  [data-sonner-toast][data-type="error"] {
+    background-color: rgb(254 242 242) !important;
+    border-color: rgb(254 202 202) !important;
+    color: rgb(127 29 29) !important;
+  }
+
+  [data-sonner-toast][data-type="error"] [data-icon] {
+    color: rgb(220 38 38) !important;
+  }
+
   .invisible {
     visibility: hidden;
   }

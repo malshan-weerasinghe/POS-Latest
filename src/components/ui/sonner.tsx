@@ -16,6 +16,16 @@ const Toaster = ({ theme = 'light', ...props }: CustomToasterProps) => {
           "--normal-border": "var(--border)",
         } as React.CSSProperties
       }
+      toastOptions={{
+        classNames: {
+          success: 'bg-green-50 border-green-200 text-green-900',
+          error: 'bg-red-50 border-red-200 text-red-900',
+          icon: 'success-icon',
+        },
+        style: {
+          borderWidth: '1px',
+        },
+      }}
       {...props}
     />
   );
