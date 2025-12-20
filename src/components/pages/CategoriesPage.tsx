@@ -72,11 +72,6 @@ export const CategoriesPage: React.FC = () => {
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const stats = {
-    total: categories.length,
-    totalItems: categories.reduce((sum, cat) => sum + cat.itemCount, 0),
-  };
-
   const resetForm = () => {
     setFormData({
       name: '',
@@ -161,85 +156,6 @@ export const CategoriesPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>Total Categories</p>
-                <h3>{stats.total}</h3>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>Total Items</p>
-                <h3>{stats.totalItems}</h3>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Categories Grid */}
-        <div className="grid grid-cols-3 gap-6">
-          {filteredCategories.map((category) => (
-            <Card key={category.id}>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div
-                      className="h-12 w-12 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${category.color}15` }}
-                    >
-                      <Package className="h-6 w-6" style={{ color: category.color }} />
-                    </div>
-                    <Badge variant="secondary">{category.itemCount} items</Badge>
-                  </div>
-                  <div>
-                    <h4>{category.name}</h4>
-                    <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
-                      {category.description}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditCategory(category)}>
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <AlertDialog open={deleteDialogOpen && categoryToDelete?.id === category.id} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setCategoryToDelete(null); }}>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { setCategoryToDelete(category); setDeleteDialogOpen(true); }}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Category</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete <b>{category.name}</b>? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={() => handleDeleteCategory(category.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
 
         {/* Categories Table */}
         <Card>

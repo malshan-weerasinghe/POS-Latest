@@ -328,6 +328,50 @@ export const salesAPI = {
   },
 };
 
+// Categories API
+export const categoriesAPI = {
+  // Get all categories with optional search and pagination
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/categories?${queryString}` : '/categories';
+    return await apiRequest(endpoint);
+  },
+
+  // Search categories for quick search
+  search: async (query) => {
+    if (!query.trim()) return { success: true, data: [] };
+    return await apiRequest(`/categories/search/${encodeURIComponent(query)}`);
+  },
+
+  // Get single category
+  getById: async (id) => {
+    return await apiRequest(`/categories/${id}`);
+  },
+
+  // Create category (Admin only)
+  create: async (categoryData) => {
+    return await apiRequest('/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+  },
+
+  // Update category (Admin only)
+  update: async (id, categoryData) => {
+    return await apiRequest(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(categoryData),
+    });
+  },
+
+  // Delete category (Admin only)
+  delete: async (id) => {
+    return await apiRequest(`/categories/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // API utilities
 export const apiUtils = {
   getAuthToken,
@@ -341,6 +385,7 @@ export default {
   products: productsAPI,
   customers: customersAPI,
   suppliers: suppliersAPI,
+  categories: categoriesAPI,
   sales: salesAPI,
   utils: apiUtils,
 };

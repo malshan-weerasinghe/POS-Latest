@@ -190,6 +190,24 @@ const validateSupplier = [
 ];
 
 // Pagination validation
+// Category validation
+const validateCategory = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Category name must be between 2-100 characters'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description must be maximum 500 characters'),
+  body('color')
+    .optional()
+    .matches(/^#[0-9A-Fa-f]{6}$/)
+    .withMessage('Color must be a valid hex code (e.g., #0d9488)'),
+  handleValidationErrors
+];
+
 const validatePagination = [
   query('page')
     .optional()
@@ -209,6 +227,7 @@ module.exports = {
   validateProduct,
   validateCustomer,
   validateSupplier,
+  validateCategory,
   validateSale,
   validateId,
   validatePagination,
