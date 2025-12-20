@@ -66,9 +66,13 @@ const adminOnly = authorize(['admin']);
 // Admin or Cashier middleware
 const posUser = authorize(['admin', 'cashier']);
 
+// Admin only middleware
+const adminUser = authorize(['admin']);
+
 module.exports = {
   authenticate,
   authorize,
   adminOnly,
-  posUser
+  posUser,
+  adminUser
 };

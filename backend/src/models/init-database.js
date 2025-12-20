@@ -55,6 +55,22 @@ const createTables = () => {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
 
+    // Suppliers table
+    `CREATE TABLE IF NOT EXISTS suppliers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      contact_person TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT,
+      address TEXT,
+      payment_terms TEXT DEFAULT 'Net 30',
+      status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+      total_orders INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
     // Sales table
     `CREATE TABLE IF NOT EXISTS sales (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

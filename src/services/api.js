@@ -234,6 +234,63 @@ export const customersAPI = {
   },
 };
 
+// Suppliers API
+export const suppliersAPI = {
+  // Get all suppliers with optional search and pagination
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/suppliers?${queryString}` : '/suppliers';
+    return await apiRequest(endpoint);
+  },
+
+  // Search suppliers
+  search: async (query) => {
+    if (!query.trim()) return { success: true, data: [] };
+    return await apiRequest(`/suppliers/search/${encodeURIComponent(query)}`);
+  },
+
+  // Get single supplier
+  getById: async (id) => {
+    return await apiRequest(`/suppliers/${id}`);
+  },
+
+  // Create supplier
+  create: async (supplierData) => {
+    return await apiRequest('/suppliers', {
+      method: 'POST',
+      body: JSON.stringify(supplierData),
+    });
+  },
+
+  // Update supplier
+  update: async (id, supplierData) => {
+    return await apiRequest(`/suppliers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(supplierData),
+    });
+  },
+
+  // Update supplier status
+  updateStatus: async (id, status) => {
+    return await apiRequest(`/suppliers/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  // Delete supplier
+  delete: async (id) => {
+    return await apiRequest(`/suppliers/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Get supplier statistics
+  getStats: async () => {
+    return await apiRequest('/suppliers/stats/overview');
+  },
+};
+
 // Sales API
 export const salesAPI = {
   // Get all sales with optional filters and pagination
@@ -283,6 +340,7 @@ export default {
   auth: authAPI,
   products: productsAPI,
   customers: customersAPI,
+  suppliers: suppliersAPI,
   sales: salesAPI,
   utils: apiUtils,
 };

@@ -158,6 +158,37 @@ const validateId = [
   handleValidationErrors
 ];
 
+// Supplier validation
+const validateSupplier = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Supplier name must be between 2-100 characters'),
+  body('contact_person')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Contact person name must be between 2-100 characters'),
+  body('phone')
+    .trim()
+    .matches(/^(?:\+94|0)?[0-9]{9,10}$/)
+    .withMessage('Phone number must be a valid Sri Lankan number'),
+  body('email')
+    .optional()
+    .isEmail()
+    .withMessage('Email must be valid'),
+  body('address')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Address must be maximum 500 characters'),
+  body('payment_terms')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('Payment terms must be maximum 50 characters'),
+  handleValidationErrors
+];
+
 // Pagination validation
 const validatePagination = [
   query('page')
@@ -177,6 +208,7 @@ module.exports = {
   validateUpdatePin,
   validateProduct,
   validateCustomer,
+  validateSupplier,
   validateSale,
   validateId,
   validatePagination,

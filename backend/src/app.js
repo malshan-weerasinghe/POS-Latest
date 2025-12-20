@@ -8,6 +8,7 @@ const database = require('./models/database');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const customerRoutes = require('./routes/customers');
+const supplierRoutes = require('./routes/suppliers');
 const salesRoutes = require('./routes/sales');
 
 const app = express();
@@ -63,6 +64,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/suppliers', supplierRoutes);
 app.use('/api/sales', salesRoutes);
 
 // API info endpoint
