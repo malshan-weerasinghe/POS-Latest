@@ -148,8 +148,9 @@ router.post('/', authenticate, posUser, validateSale, async (req, res) => {
     
     // Validate items and calculate totals
     for (const item of items) {
+      // Check if product exists
       const product = await database.get(
-        'SELECT * FROM products WHERE id = ? AND is_active = 1',
+        'SELECT id, name FROM products WHERE id = ? AND is_active = 1',
         [item.product_id]
       );
       
@@ -160,11 +161,16 @@ router.post('/', authenticate, posUser, validateSale, async (req, res) => {
         });
       }
       
-      // Check stock availability
-      if (product.stock < item.quantity) {
+      // Check total stock availability across all suppliers
+      const stockResult = await database.get(
+        'SELECT COALESCE(SUM(stock), 0) as total_stock FROM product_suppliers WHERE product_id = ?',
+        [item.product_id]
+      );
+      
+      if (stockResult.total_stock < item.quantity) {
         return res.status(400).json({
           success: false,
-          error: `Insufficient stock for ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`
+          error: `Insufficient stock for ${product.name}. Available: ${stockResult.total_stock}, Required: ${item.quantity}`
         });
       }
       

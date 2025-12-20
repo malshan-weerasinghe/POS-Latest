@@ -67,6 +67,11 @@ interface Product {
 }
 
 export const SalesBillingPage: React.FC = () => {
+  // Format number with commas for LKR currency
+  const formatLKR = (amount: number): string => {
+    return amount.toLocaleString('en-LK');
+  };
+
   const { navigateTo } = useContext(AppContext);
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -279,8 +284,7 @@ export const SalesBillingPage: React.FC = () => {
     
     try {
       // Prepare sale data
-      const saleData = {
-        customer_id: selectedCustomer?.id || null,
+      const saleData: any = {
         items: cart.map(item => ({
           product_id: parseInt(item.id),
           quantity: item.quantity,
@@ -290,6 +294,11 @@ export const SalesBillingPage: React.FC = () => {
         payment_method: paymentMethod,
         amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) : grandTotal
       };
+
+      // Only add customer_id if a customer is selected
+      if (selectedCustomer?.id) {
+        saleData.customer_id = selectedCustomer.id;
+      }
 
       // Create the sale
       const response = await salesAPI.create(saleData);
@@ -309,7 +318,11 @@ export const SalesBillingPage: React.FC = () => {
         setShowPaymentModal(false);
         setPaymentError('');
       } else {
-        const errorMessage = response.message || 'Failed to process payment';
+        // Show validation errors if available
+        let errorMessage = response.message || response.error || 'Failed to process payment';
+        if (response.details && Array.isArray(response.details)) {
+          errorMessage = response.details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+        }
         setPaymentError(errorMessage);
         toast.error(errorMessage);
       }
@@ -567,7 +580,7 @@ export const SalesBillingPage: React.FC = () => {
                               {product.stock > 0 && product.stock <= 10 && " (Low Stock)"}
                             </p>
                           </div>
-                          <p className="font-medium">Rs {product.sale_price}</p>
+                          <p className="font-medium">LKR {formatLKR(product.sale_price)}</p>
                         </button>
                       ))
                     ) : (
@@ -629,8 +642,8 @@ export const SalesBillingPage: React.FC = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>Rs {item.costPrice}</TableCell>
-                          <TableCell>Rs {item.price}</TableCell>
+                          <TableCell>LKR {formatLKR(item.costPrice)}</TableCell>
+                          <TableCell>LKR {formatLKR(item.price)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button
@@ -662,7 +675,7 @@ export const SalesBillingPage: React.FC = () => {
                             />
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            Rs {calculateItemTotal(item).toFixed(2)}
+                            LKR {formatLKR(calculateItemTotal(item))}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -692,13 +705,13 @@ export const SalesBillingPage: React.FC = () => {
                       {/* Total Cost - aligns with Cost column */}
                       <td className="w-28 p-3 text-center">
                         <p className="text-xs text-muted-foreground mb-0.5">Total Cost</p>
-                        <p className="text-base font-semibold">Rs {totalCost.toFixed(2)}</p>
+                        <p className="text-base font-semibold">LKR {formatLKR(totalCost)}</p>
                       </td>
 
                       {/* Total Price - aligns with Price column */}
                       <td className="w-28 p-3 text-center">
                         <p className="text-xs text-muted-foreground mb-0.5">Total Price</p>
-                        <p className="text-base font-semibold">Rs {subtotal.toFixed(2)}</p>
+                        <p className="text-base font-semibold">LKR {formatLKR(subtotal)}</p>
                       </td>
 
                       {/* Blank Space - aligns with Quantity column */}
@@ -707,14 +720,14 @@ export const SalesBillingPage: React.FC = () => {
                       {/* Total Discount - aligns with Disc column, extended width */}
                       <td className="p-3 text-center" colSpan={2}>
                         <p className="text-xs text-muted-foreground mb-0.5">Total Discount</p>
-                        <p className="text-base font-semibold text-destructive">Rs {totalDiscount.toFixed(2)}</p>
+                        <p className="text-base font-semibold text-destructive">LKR {formatLKR(totalDiscount)}</p>
                       </td>
 
                       {/* Grand Total - compact on the right */}
                       <td className="p-3 text-right">
                         <div className="bg-primary/10 rounded-md p-2 inline-block">
                           <p className="text-xs text-muted-foreground mb-0.5 font-medium">Grand Total</p>
-                          <p className="text-lg font-bold text-primary">Rs {grandTotal.toFixed(2)}</p>
+                          <p className="text-lg font-bold text-primary">LKR {formatLKR(grandTotal)}</p>
                         </div>
                       </td>
                     </tr>
@@ -854,10 +867,14 @@ export const SalesBillingPage: React.FC = () => {
                   <div className="space-y-2">
                     <Label>Amount Received</Label>
                     <Input
-                      type="number"
+                      type="text"
                       placeholder="Enter amount"
-                      value={amountReceived}
-                      onChange={(e) => setAmountReceived(e.target.value)}
+                      value={amountReceived ? formatLKR(parseFloat(amountReceived)) : ''}
+                      onChange={(e) => {
+                        // Remove commas and non-numeric characters except decimal point
+                        const numericValue = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+                        setAmountReceived(numericValue);
+                      }}
                       className="text-lg font-semibold"
                     />
                   </div>
@@ -869,7 +886,7 @@ export const SalesBillingPage: React.FC = () => {
           {/* Action Buttons */}
           <div className="space-y-2">
             <Button className="w-full h-12" size="lg" onClick={handlePayment} disabled={cart.length === 0}>
-              Complete Sale - Rs {grandTotal.toFixed(2)}
+              Complete Sale - LKR {formatLKR(grandTotal)}
             </Button>
             <Button variant="outline" className="w-full" size="sm" onClick={handlePrintPreview}>
               <Printer className="h-4 w-4 mr-2" />
@@ -897,18 +914,18 @@ export const SalesBillingPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between py-1">
                   <span>Grand Total:</span>
-                  <span className="font-semibold">Rs {grandTotal.toFixed(2)}</span>
+                  <span className="font-semibold">LKR {formatLKR(grandTotal)}</span>
                 </div>
                 {paymentMethod === 'cash' && amountReceived && (
                   <>
                     <div className="flex justify-between py-1">
                       <span>Amount Received:</span>
-                      <span className="font-semibold">Rs {parseFloat(amountReceived).toFixed(2)}</span>
+                      <span className="font-semibold">LKR {formatLKR(parseFloat(amountReceived))}</span>
                     </div>
                     {parseFloat(amountReceived) > grandTotal && (
                       <div className="flex justify-between py-1">
                         <span>Change:</span>
-                        <span className="font-semibold text-green-600">Rs {(parseFloat(amountReceived) - grandTotal).toFixed(2)}</span>
+                        <span className="font-semibold text-green-600">LKR {formatLKR(parseFloat(amountReceived) - grandTotal)}</span>
                       </div>
                     )}
                   </>
