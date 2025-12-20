@@ -1,8 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Printer, Trash2, Plus, Minus, Search, X, CreditCard, Banknote } from 'lucide-react';
+import { Printer, Trash2, Plus, Minus, Search, X, CreditCard, Banknote, AlertTriangle } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
@@ -11,6 +11,9 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { AppContext } from '../../App';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
+import { productsAPI, customersAPI, salesAPI } from '../../services/api';
+import { cn } from '../ui/utils';
 
 interface CartItem {
   id: string;
@@ -32,32 +35,45 @@ interface Customer {
   address?: string;
 }
 
-const mockCustomers: Customer[] = [
-  { id: '1', name: 'John Silva', phone: '0771234567', email: 'john@email.com', address: 'Colombo 03' },
-  { id: '2', name: 'Mary Fernando', phone: '0767654321', email: 'mary@email.com', address: 'Kandy' },
-  { id: '3', name: 'Sunil Perera', phone: '0759876543', email: 'sunil@email.com', address: 'Galle' },
-  { id: '4', name: 'Nimal Kumar', phone: '0771112222', email: 'nimal@email.com', address: 'Negombo' },
-  { id: '5', name: 'Kamala Jayawardena', phone: '0763334444', email: 'kamala@email.com', address: 'Matara' },
-];
+interface CartItem {
+  id: string;
+  name: string;
+  sku: string;
+  costPrice: number;
+  price: number;
+  quantity: number;
+  discount: number;
+  tax: number;
+  warrantyMonths: number;
+}
 
-const mockProducts = [
-  { id: '1', name: 'iPhone 13 Pro 128GB', sku: 'PHN-IP13P-128', costPrice: 115000, price: 135000, stock: 12, category: 'Smartphones', warrantyMonths: 12 },
-  { id: '2', name: 'Samsung Galaxy S23', sku: 'PHN-SAM-S23', costPrice: 95000, price: 110000, stock: 8, category: 'Smartphones', warrantyMonths: 12 },
-  { id: '3', name: 'iPhone 12 64GB', sku: 'PHN-IP12-64', costPrice: 75000, price: 88000, stock: 15, category: 'Smartphones', warrantyMonths: 6 },
-  { id: '4', name: 'AirPods Pro 2nd Gen', sku: 'ACC-AP-PRO2', costPrice: 28000, price: 32000, stock: 25, category: 'Accessories', warrantyMonths: 12 },
-  { id: '5', name: 'Samsung Charger 25W', sku: 'ACC-CHR-25W', costPrice: 1200, price: 1800, stock: 50, category: 'Accessories', warrantyMonths: 6 },
-  { id: '6', name: 'iPhone 11 128GB', sku: 'PHN-IP11-128', costPrice: 58000, price: 68000, stock: 10, category: 'Smartphones', warrantyMonths: 6 },
-  { id: '7', name: 'OnePlus Nord 3', sku: 'PHN-OP-N3', costPrice: 42000, price: 52000, stock: 18, category: 'Smartphones', warrantyMonths: 12 },
-  { id: '8', name: 'Phone Case Universal', sku: 'ACC-CASE-UNI', costPrice: 500, price: 1200, stock: 100, category: 'Accessories', warrantyMonths: 0 },
-  { id: '9', name: 'Tempered Glass Screen', sku: 'ACC-GLASS-SC', costPrice: 300, price: 800, stock: 150, category: 'Accessories', warrantyMonths: 0 },
-  { id: '10', name: 'Power Bank 20000mAh', sku: 'ACC-PB-20K', costPrice: 3500, price: 5500, stock: 30, category: 'Accessories', warrantyMonths: 12 },
-];
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  cost_price: number;
+  sale_price: number;
+  stock: number;
+  category: string;
+  warranty_months: number;
+}
 
 export const SalesBillingPage: React.FC = () => {
   const { navigateTo } = useContext(AppContext);
+  const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerResults, setCustomerResults] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -65,6 +81,10 @@ export const SalesBillingPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [amountReceived, setAmountReceived] = useState('');
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+  const [isProcessingSale, setIsProcessingSale] = useState(false);
+  const [paymentError, setPaymentError] = useState<string>('');
 
   // New customer form state
   const [newCustomer, setNewCustomer] = useState({
@@ -75,35 +95,101 @@ export const SalesBillingPage: React.FC = () => {
     address: '',
   });
 
-  const filteredProducts = mockProducts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Search products API call
+  const searchProducts = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
 
-  const filteredCustomers = mockCustomers.filter(
-    (c) =>
-      c.phone.includes(customerSearch) ||
-      c.name.toLowerCase().includes(customerSearch.toLowerCase())
-  );
+    setIsSearchingProducts(true);
+    try {
+      const response = await productsAPI.search(query);
+      if (response.success) {
+        setSearchResults(response.data);
+      }
+    } catch (error) {
+      console.error('Error searching products:', error);
+      toast.error('Failed to search products');
+    } finally {
+      setIsSearchingProducts(false);
+    }
+  };
 
-  const addToCart = (product: typeof mockProducts[0]) => {
+  // Search customers API call
+  const searchCustomers = async (query: string) => {
+    if (!query.trim()) {
+      setCustomerResults([]);
+      return;
+    }
+
+    setIsSearchingCustomers(true);
+    try {
+      const response = await customersAPI.search(query);
+      if (response.success) {
+        setCustomerResults(response.data);
+      }
+    } catch (error) {
+      console.error('Error searching customers:', error);
+      toast.error('Failed to search customers');
+    } finally {
+      setIsSearchingCustomers(false);
+    }
+  };
+
+  // Debounced search effects
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        searchProducts(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (customerSearch && showCustomerResults) {
+        searchCustomers(customerSearch);
+      } else {
+        setCustomerResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [customerSearch, showCustomerResults]);
+
+  const filteredProducts = searchResults;
+  const filteredCustomers = customerResults;
+
+  const addToCart = (product: Product) => {
     const existing = cart.find((item) => item.id === product.id);
     if (existing) {
+      if (existing.quantity + 1 > product.stock) {
+        toast.error(`Only ${product.stock} units available in stock`);
+        return;
+      }
       updateQuantity(product.id, existing.quantity + 1);
     } else {
+      if (product.stock < 1) {
+        toast.error('Product is out of stock');
+        return;
+      }
       setCart([
         ...cart,
         {
           id: product.id,
           name: product.name,
           sku: product.sku,
-          costPrice: product.costPrice,
-          price: product.price,
+          costPrice: product.cost_price,
+          price: product.sale_price,
           quantity: 1,
           discount: 0,
           tax: 5, // 5% tax
-          warrantyMonths: product.warrantyMonths,
+          warrantyMonths: product.warranty_months,
         },
       ]);
     }
@@ -166,6 +252,7 @@ export const SalesBillingPage: React.FC = () => {
       toast.error('Please enter amount received (must be >= Grand Total)');
       return;
     }
+    setPaymentError(''); // Clear any previous errors
     setShowPaymentModal(true);
   };
 
@@ -181,29 +268,59 @@ export const SalesBillingPage: React.FC = () => {
     window.print();
   };
 
-  const completePayment = () => {
-    // Here you would process the payment
-    console.log('Payment completed:', {
-      cart,
-      total: grandTotal,
-      paymentMethod,
-      amountReceived: parseFloat(amountReceived),
-      customer: selectedCustomer,
-    });
+  const completePayment = async () => {
+    if (!user) {
+      toast.error('User not authenticated');
+      return;
+    }
 
-    // Show success toast
-    toast.success('Payment Completed!', {
-      description: `Invoice generated for Rs ${grandTotal.toFixed(2)}`,
-    });
+    setIsProcessingSale(true);
+    setPaymentError(''); // Clear any previous errors
+    
+    try {
+      // Prepare sale data
+      const saleData = {
+        customer_id: selectedCustomer?.id || null,
+        items: cart.map(item => ({
+          product_id: parseInt(item.id),
+          quantity: item.quantity,
+          unit_price: item.price,
+          discount: item.discount
+        })),
+        payment_method: paymentMethod,
+        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) : grandTotal
+      };
 
-    // Reset
-    setCart([]);
-    setCustomerSearch('');
-    setSelectedCustomer(null);
-    setPaymentMethod('cash');
-    setAmountReceived('');
-    setShowPaymentModal(false);
-    // Stay on sales billing page
+      // Create the sale
+      const response = await salesAPI.create(saleData);
+      
+      if (response.success) {
+        // Show success toast
+        toast.success('Payment Completed!', {
+          description: `Invoice ${response.data.invoice_number} generated for Rs ${grandTotal.toFixed(2)}`,
+        });
+
+        // Reset the form
+        setCart([]);
+        setCustomerSearch('');
+        setSelectedCustomer(null);
+        setPaymentMethod('cash');
+        setAmountReceived('');
+        setShowPaymentModal(false);
+        setPaymentError('');
+      } else {
+        const errorMessage = response.message || 'Failed to process payment';
+        setPaymentError(errorMessage);
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
+      console.error('Error processing payment:', error);
+      const errorMessage = error.message || 'Failed to process payment';
+      setPaymentError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessingSale(false);
+    }
   };
 
   const completePaymentAndPrint = () => {
@@ -218,34 +335,43 @@ export const SalesBillingPage: React.FC = () => {
     setShowCustomerResults(false);
   };
 
-  const handleAddNewCustomer = () => {
+  const handleAddNewCustomer = async () => {
     if (!newCustomer.firstName || !newCustomer.phone) {
       toast.error('First Name and Phone are required');
       return;
     }
 
-    const customer: Customer = {
-      id: Date.now().toString(),
-      name: `${newCustomer.firstName} ${newCustomer.lastName}`.trim(),
-      phone: newCustomer.phone,
-      email: newCustomer.email,
-      address: newCustomer.address,
-    };
+    try {
+      const customerData = {
+        name: `${newCustomer.firstName} ${newCustomer.lastName}`.trim(),
+        phone: newCustomer.phone,
+        email: newCustomer.email || null,
+        address: newCustomer.address || null,
+      };
 
-    // In real app, save to database
-    mockCustomers.push(customer);
+      const response = await customersAPI.create(customerData);
+      
+      if (response.success) {
+        const newCustomerRecord = response.data;
+        
+        toast.success('Customer Added!', {
+          description: `${newCustomerRecord.name} has been added successfully`,
+        });
 
-    toast.success('Customer Added!', {
-      description: `${customer.name} has been added successfully`,
-    });
+        // Select the new customer
+        setSelectedCustomer(newCustomerRecord);
+        setCustomerSearch(newCustomerRecord.phone);
 
-    // Select the new customer
-    setSelectedCustomer(customer);
-    setCustomerSearch(customer.phone);
-
-    // Reset form and close modal
-    setNewCustomer({ firstName: '', lastName: '', phone: '', email: '', address: '' });
-    setShowAddCustomerModal(false);
+        // Reset form and close modal
+        setNewCustomer({ firstName: '', lastName: '', phone: '', email: '', address: '' });
+        setShowAddCustomerModal(false);
+      } else {
+        toast.error(response.message || 'Failed to add customer');
+      }
+    } catch (error) {
+      console.error('Error adding customer:', error);
+      toast.error('Failed to add customer');
+    }
   };
 
   const holdBill = () => {
@@ -417,20 +543,31 @@ export const SalesBillingPage: React.FC = () => {
                 {/* Search Results - Positioned absolutely to overlay */}
                 {searchQuery && (
                   <div className="absolute top-full left-0 right-0 mt-2 border rounded-lg max-h-64 overflow-y-auto bg-background shadow-lg z-50">
-                    {filteredProducts.length > 0 ? (
+                    {isSearchingProducts ? (
+                      <div className="px-4 py-8 text-center text-muted-foreground">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2"></div>
+                        Searching products...
+                      </div>
+                    ) : filteredProducts.length > 0 ? (
                       filteredProducts.map((product) => (
                         <button
                           key={product.id}
                           onClick={() => addToCart(product)}
-                          className="w-full px-4 py-3 text-left hover:bg-surface-hover border-b last:border-b-0 flex items-center justify-between"
+                          disabled={product.stock === 0}
+                          className={cn(
+                            "w-full px-4 py-3 text-left hover:bg-surface-hover border-b last:border-b-0 flex items-center justify-between",
+                            product.stock === 0 && "opacity-50 cursor-not-allowed"
+                          )}
                         >
                           <div>
                             <p className="font-medium">{product.name}</p>
                             <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
                               {product.sku} • Stock: {product.stock}
+                              {product.stock === 0 && " (Out of Stock)"}
+                              {product.stock > 0 && product.stock <= 10 && " (Low Stock)"}
                             </p>
                           </div>
-                          <p className="font-medium">Rs {product.price}</p>
+                          <p className="font-medium">Rs {product.sale_price}</p>
                         </button>
                       ))
                     ) : (
@@ -645,7 +782,12 @@ export const SalesBillingPage: React.FC = () => {
                   {/* Customer Search Results */}
                   {showCustomerResults && customerSearch && (
                     <div className="border rounded-lg max-h-48 overflow-y-auto">
-                      {filteredCustomers.length > 0 ? (
+                      {isSearchingCustomers ? (
+                        <div className="px-3 py-4 text-center text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2"></div>
+                          Searching customers...
+                        </div>
+                      ) : filteredCustomers.length > 0 ? (
                         filteredCustomers.map((customer) => (
                           <button
                             key={customer.id}
@@ -774,12 +916,26 @@ export const SalesBillingPage: React.FC = () => {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          {paymentError && (
+            <div className="flex items-center p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              {paymentError}
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={completePayment}>
-              Confirm
+            <AlertDialogAction onClick={completePayment} disabled={isProcessingSale}>
+              {isProcessingSale ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                  Processing...
+                </>
+              ) : (
+                'Confirm'
+              )}
             </AlertDialogAction>
-            <AlertDialogAction onClick={completePaymentAndPrint} className="ml-2">
+            <AlertDialogAction onClick={completePaymentAndPrint} className="ml-2" disabled={isProcessingSale}>
               <Printer className="h-4 w-4 mr-2" />
               Confirm & Print
             </AlertDialogAction>

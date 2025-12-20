@@ -11,10 +11,13 @@ import {
   Tags,
   ChevronLeft,
   Menu,
-  History
+  History,
+  LogOut
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { AppContext, Route } from '../../App';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface MenuItem {
   id: string;
@@ -74,7 +77,26 @@ const menuItems: MenuItem[] = [
 
 export const Sidebar: React.FC = () => {
   const { currentRoute, navigateTo, sidebarCollapsed, setSidebarCollapsed } = useContext(AppContext);
+  const { user, logout } = useAuth();
   const [expandedItems, setExpandedItems] = useState<string[]>(['products']);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success('Logged out successfully');
+    } catch (error) {
+      toast.error('Logout failed');
+    }
+  };
+
+  const getUserInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   const toggleExpand = (itemId: string) => {
     setExpandedItems((prev) =>
@@ -226,20 +248,34 @@ export const Sidebar: React.FC = () => {
         </div>
       </nav>
 
-      {/* Footer: Profile and Looper7 logo, only when expanded */}
-      {!sidebarCollapsed && (
-        <div className="p-4 border-t border-sidebar-border flex flex-col gap-2">
+      {/* Footer: Profile and Logout, only when expanded */}
+      {!sidebarCollapsed && user && (
+        <div className="p-4 border-t border-sidebar-border flex flex-col gap-3">
           {/* User Profile */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-base">JD</div>
-            <div className="text-left">
-              <p className="text-sidebar-foreground text-sm font-medium leading-tight">John Doe</p>
-              <p className="text-sidebar-foreground/60 text-xs leading-tight">Administrator</p>
+            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-base">
+              {getUserInitials(user.name)}
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-sidebar-foreground text-sm font-medium leading-tight">{user.name}</p>
+              <p className="text-sidebar-foreground/60 text-xs leading-tight capitalize">
+                {user.role === 'admin' ? 'Administrator' : 'Cashier'}
+              </p>
             </div>
           </div>
+          
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sm"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </button>
+          
           {/* Looper7 Logo */}
-          <div className="flex justify-center mt-1">
-            <img src="/src/assets/looper7-logo.png" alt="LOOPER7" className="h-12 w-auto object-contain" />
+          <div className="flex justify-center">
+            <img src="/src/assets/looper7-logo.png" alt="LOOPER7" className="h-10 w-auto object-contain opacity-60" />
           </div>
         </div>
       )}

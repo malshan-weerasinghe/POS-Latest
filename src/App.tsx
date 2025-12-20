@@ -9,7 +9,9 @@ import { SuppliersListPage } from './components/pages/SuppliersListPage';
 import { CustomersListPage } from './components/pages/CustomersListPage';
 import { ReceiptPage } from './components/pages/ReceiptPage';
 import { SettingsPage } from './components/pages/SettingsPage';
+import { LoginPage } from './components/pages/LoginPage';
 import { Toaster } from './components/ui/sonner';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 export type Route =
   | 'dashboard'
@@ -41,9 +43,18 @@ export const AppContext = React.createContext<AppContextType>({
 });
 
 export default function App() {
-  const [currentRoute, setCurrentRoute] = useState<Route>('dashboard');
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+function AppContent() {
+  const [currentRoute, setCurrentRoute] = useState<Route>('sales-billing'); // Start with sales billing
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
 
   const navigateTo = (route: Route) => {
     setCurrentRoute(route);
@@ -86,6 +97,28 @@ export default function App() {
         return <DashboardPage />;
     }
   };
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className={theme}>
+        <LoginPage />
+        <Toaster theme={theme} />
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider value={{ currentRoute, navigateTo, theme, toggleTheme, sidebarCollapsed, setSidebarCollapsed }}>
