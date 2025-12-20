@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -6,8 +6,10 @@ import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { Search, Calendar, ChevronDown, ChevronRight, Printer, FileText, Download, DollarSign, CheckCircle2, Clock } from 'lucide-react';
+import { Search, Calendar, ChevronDown, ChevronRight, Printer, FileText, Download, DollarSign, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { salesAPI } from '../../services/api';
+import { toast } from 'sonner';
 
 interface InvoiceProduct {
   id: string;
@@ -130,6 +132,14 @@ const mockInvoices: Invoice[] = [
 ];
 
 export const SalesHistoryPage: React.FC = () => {
+  // Format number with commas for LKR currency
+  const formatLKR = (amount: number): string => {
+    return amount.toLocaleString('en-LK');
+  };
+
+  const [sales, setSales] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -137,12 +147,72 @@ export const SalesHistoryPage: React.FC = () => {
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
 
+  useEffect(() => {
+    loadSales();
+  }, [dateFrom, dateTo]);
+
+  const loadSales = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params: any = {};
+      if (dateFrom) params.start_date = dateFrom;
+      if (dateTo) params.end_date = dateTo;
+      
+      const response = await salesAPI.getAll(params);
+      
+      if (response.success) {
+        // Transform backend data to match UI interface
+        const transformedSales = await Promise.all(
+          (response.data?.sales || []).map(async (sale: any) => {
+            // Fetch detailed sale with items
+            const detailResponse = await salesAPI.getById(sale.id);
+            const saleDetails = detailResponse.success ? detailResponse.data : null;
+            
+            return {
+              id: sale.id.toString(),
+              invoiceNumber: sale.invoice_number,
+              customerName: sale.customer_name || 'Walk-in Customer',
+              customerPhone: sale.customer_phone || '-',
+              date: new Date(sale.sale_date).toISOString().split('T')[0],
+              time: new Date(sale.sale_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+              totalAmount: sale.grand_total,
+              status: 'paid', // All completed sales are paid
+              paymentMethod: sale.payment_method,
+              products: saleDetails?.items?.map((item: any) => ({
+                id: item.id.toString(),
+                name: item.product_name,
+                sku: item.sku || '-',
+                quantity: item.quantity,
+                unitPrice: item.unit_price,
+                discount: item.discount || 0,
+                subtotal: item.line_total
+              })) || []
+            };
+          })
+        );
+        
+        setSales(transformedSales);
+      } else {
+        setError('Failed to load sales history');
+        toast.error('Failed to load sales history');
+      }
+    } catch (error) {
+      console.error('Error loading sales:', error);
+      setError('Failed to load sales history. Please try again.');
+      toast.error('Failed to load sales history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleRow = (invoiceId: string) => {
     setExpandedInvoiceId(expandedInvoiceId === invoiceId ? null : invoiceId);
   };
 
   // Filter invoices
-  const filteredInvoices = mockInvoices.filter((invoice) => {
+  const filteredInvoices = sales.filter((invoice) => {
     const matchesSearch = 
       invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -158,10 +228,10 @@ export const SalesHistoryPage: React.FC = () => {
 
   // Calculate stats
   const stats = {
-    total: mockInvoices.length,
-    totalRevenue: mockInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-    paid: mockInvoices.filter((i) => i.status === 'paid').length,
-    pending: mockInvoices.filter((i) => i.status === 'pending').length,
+    total: sales.length,
+    totalRevenue: sales.reduce((sum, inv) => sum + inv.totalAmount, 0),
+    paid: sales.filter((i) => i.status === 'paid').length,
+    pending: sales.filter((i) => i.status === 'pending').length,
   };
 
   const handlePrintInvoice = (invoice: Invoice) => {
@@ -209,6 +279,28 @@ export const SalesHistoryPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-destructive">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-medium">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading ? (
+          <Card>
+            <CardContent className="pt-12 pb-12 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                <p className="text-muted-foreground">Loading sales history...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
         {/* Filters Bar */}
         <Card>
           <CardContent className="pt-6">
@@ -290,7 +382,7 @@ export const SalesHistoryPage: React.FC = () => {
             <CardContent className="pt-6">
               <div className="space-y-2">
                 <p className="text-muted-foreground" style={{ fontSize: 'var(--text-body-s)' }}>Total Revenue</p>
-                <h3 className="text-primary">Rs {stats.totalRevenue.toFixed(2)}</h3>
+                <h3 className="text-primary">LKR {formatLKR(stats.totalRevenue)}</h3>
               </div>
             </CardContent>
           </Card>
@@ -378,7 +470,7 @@ export const SalesHistoryPage: React.FC = () => {
                             <TableCell>{new Date(invoice.date).toLocaleDateString('en-GB')}</TableCell>
                             <TableCell>{invoice.time}</TableCell>
                             <TableCell className="text-right font-semibold">
-                              Rs {invoice.totalAmount.toFixed(2)}
+                              LKR {formatLKR(invoice.totalAmount)}
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className="capitalize">
@@ -426,12 +518,12 @@ export const SalesHistoryPage: React.FC = () => {
                                           <TableCell className="font-medium">{product.name}</TableCell>
                                           <TableCell className="text-muted-foreground">{product.sku}</TableCell>
                                           <TableCell className="text-center">{product.quantity}</TableCell>
-                                          <TableCell className="text-right">Rs {product.unitPrice.toFixed(2)}</TableCell>
+                                          <TableCell className="text-right">LKR {formatLKR(product.unitPrice)}</TableCell>
                                           <TableCell className="text-right text-destructive">
-                                            {product.discount > 0 ? `-Rs ${product.discount.toFixed(2)}` : '-'}
+                                            {product.discount > 0 ? `-LKR ${formatLKR(product.discount)}` : '-'}
                                           </TableCell>
                                           <TableCell className="text-right font-semibold">
-                                            Rs {product.subtotal.toFixed(2)}
+                                            LKR {formatLKR(product.subtotal)}
                                           </TableCell>
                                         </TableRow>
                                       ))}
@@ -444,19 +536,19 @@ export const SalesHistoryPage: React.FC = () => {
                                       <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Subtotal:</span>
                                         <span className="font-medium">
-                                          Rs {invoice.products.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0).toFixed(2)}
+                                          LKR {formatLKR(invoice.products.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0))}
                                         </span>
                                       </div>
                                       <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Total Discount:</span>
                                         <span className="font-medium text-destructive">
-                                          -Rs {invoice.products.reduce((sum, p) => sum + p.discount, 0).toFixed(2)}
+                                          -LKR {formatLKR(invoice.products.reduce((sum, p) => sum + p.discount, 0))}
                                         </span>
                                       </div>
                                       <div className="border-t pt-2 flex justify-between">
                                         <span className="font-semibold">Grand Total:</span>
                                         <span className="font-bold text-primary text-lg">
-                                          Rs {invoice.totalAmount.toFixed(2)}
+                                          LKR {formatLKR(invoice.totalAmount)}
                                         </span>
                                       </div>
                                     </div>
@@ -474,6 +566,8 @@ export const SalesHistoryPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
       </div>
     </PageTemplate>
   );
