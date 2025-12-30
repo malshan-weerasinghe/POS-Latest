@@ -1,0 +1,110 @@
+{
+    "name": "pos-looper7",
+    "version": "0.1.0",
+    "private": true,
+    "main": "electron/main.js",
+    "author": "Looper7",
+    "description": "POS Looper7 - Point of Sale Application",
+    "dependencies": {
+        "@radix-ui/react-alert-dialog": "^1.1.6",
+        "@radix-ui/react-collapsible": "^1.1.3",
+        "@radix-ui/react-dialog": "^1.1.6",
+        "@radix-ui/react-label": "^2.1.2",
+        "@radix-ui/react-select": "^2.1.6",
+        "@radix-ui/react-separator": "^1.1.2",
+        "@radix-ui/react-slot": "^1.1.2",
+        "@radix-ui/react-switch": "^1.1.3",
+        "@radix-ui/react-tabs": "^1.1.3",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "*",
+        "lucide-react": "^0.487.0",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "recharts": "^2.15.2",
+        "sonner": "^2.0.3",
+        "tailwind-merge": "*"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "@types/react": "^18.3.1",
+        "@types/react-dom": "^18.3.0",
+        "@vitejs/plugin-react-swc": "^3.10.2",
+        "concurrently": "^8.2.2",
+        "electron": "^28.0.0",
+        "electron-builder": "^24.9.1",
+        "electron-rebuild": "^3.2.9",
+        "typescript": "^5.6.3",
+        "vite": "6.3.5"
+    },
+    "scripts": {
+        "dev": "vite",
+        "start": "vite",
+        "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+        "start:backend": "cd backend && npm start",
+        "start:frontend": "vite",
+        "build": "vite build",
+        "electron": "electron .",
+        "electron:dev": "electron .",
+        "rebuild": "electron-rebuild -f -w sqlite3",
+        "rebuild:backend": "cd backend && electron-rebuild -f -w sqlite3",
+        "postinstall": "cd backend && npm install",
+        "prebuild:electron": "npm run rebuild:backend",
+        "build:electron": "npm run build && electron-builder",
+        "dist": "npm run prebuild:electron && npm run build && electron-builder --publish=never",
+        "dist:safe": "powershell -ExecutionPolicy Bypass -File build-exe.ps1"
+    },
+    "build": {
+        "appId": "com.looper7.pos",
+        "productName": "POS Looper7",
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "looper7_logo.ico",
+            "artifactName": "POS_Looper7-${version}-Setup.${ext}"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "POS Looper7",
+            "installerIcon": "looper7_logo.ico",
+            "uninstallerIcon": "looper7_logo.ico",
+            "installerHeaderIcon": "looper7_logo.ico",
+            "deleteAppDataOnUninstall": false
+        },
+        "files": [
+            "dist/**/*",
+            "electron/**/*",
+            "looper7_logo.ico",
+            "package.json",
+            "!**/*.md",
+            "!**/test/**/*",
+            "!**/tests/**/*"
+        ],
+        "asarUnpack": [],
+        "extraResources": [
+            {
+                "from": "backend",
+                "to": "backend",
+                "filter": [
+                    "**/*",
+                    "!**/test/**/*",
+                    "!**/tests/**/*",
+                    "!**/*.md",
+                    "!**/.cache/**/*"
+                ]
+            }
+        ],
+        "asar": true,
+        "directories": {
+            "output": "release-build"
+        }
+    }
+}
