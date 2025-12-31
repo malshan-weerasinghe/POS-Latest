@@ -399,8 +399,9 @@ export const SalesBillingPage: React.FC = () => {
 
   return (
     <PageTemplate hideHeader>
-      {/* Hidden Receipt Template for 80mm Thermal Printer */}
-      <div id="thermal-receipt" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+      <div className="flex flex-col min-h-0" style={{ height: 'calc(100vh - 4rem)' }}>
+        {/* Hidden Receipt Template for 80mm Thermal Printer */}
+        <div id="thermal-receipt" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div style={{
           width: '80mm',
           fontFamily: '"Courier New", monospace',
@@ -537,11 +538,11 @@ export const SalesBillingPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Left: Product Selection & Cart */}
-        <div className="col-span-2 space-y-4">
+        <div className="col-span-2 flex flex-col gap-4 min-h-0">
           {/* Search Bar */}
-          <Card>
+          <Card className="flex-shrink-0">
             <CardContent className="pt-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -593,7 +594,7 @@ export const SalesBillingPage: React.FC = () => {
           </Card>
 
           {/* Cart Items */}
-          <Card className="flex flex-col" style={{ height: 'calc(100vh - 15rem)' }}>
+          <Card className="flex flex-col flex-1 min-h-0">
             <CardHeader className="flex-shrink-0 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle>Invoice Items ({cart.length})</CardTitle>
@@ -606,14 +607,14 @@ export const SalesBillingPage: React.FC = () => {
               </div>
             </CardHeader>
 
-            <CardContent className="flex-1 flex flex-col overflow-hidden p-0 px-6 pb-6">
+            <CardContent className="flex-1 flex flex-col overflow-hidden p-0 px-6 pb-3">
               {cart.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg mb-3">
                   <Search className="h-12 w-12 mb-3 opacity-30" />
                   <p>Search and add items to start billing</p>
                 </div>
               ) : (
-                <div className="flex-1 overflow-y-auto border rounded-lg mb-3">
+                <div className="flex-1 overflow-y-auto border rounded-lg min-h-0 mb-3">
                   <Table>
                     <TableHeader className="sticky top-0 bg-background z-10">
                       <TableRow>
@@ -694,7 +695,7 @@ export const SalesBillingPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Summary Bar - Aligned with table columns */}
+              {/* Summary Bar - Aligned with table columns, positioned at bottom - Always visible */}
               <div className="flex-shrink-0 bg-surface-secondary rounded-lg border-2">
                 <table className="w-full">
                   <tbody>
@@ -739,7 +740,7 @@ export const SalesBillingPage: React.FC = () => {
         </div>
 
         {/* Right: Customer & Payment */}
-        <div className="flex flex-col gap-6" style={{ height: 'calc(100vh - 15rem)' }}>
+        <div className="flex flex-col gap-6 min-h-0">
           {/* Customer */}
           <Card>
             <CardHeader>
@@ -1189,6 +1190,7 @@ export const SalesBillingPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </PageTemplate>
   );
 };

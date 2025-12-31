@@ -1,17 +1,15 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Plus, Download, Upload, Search, Edit2, Trash2, Phone, Mail, MapPin, Star } from 'lucide-react';
+import { Plus, Download, Upload, Search, Edit2, Trash2, Phone, Mail } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { AppContext } from '../../App';
-import { customersAPI } from '../../services/api';
+import { customersAPI } from '../../services/api.js';
 import { toast } from 'sonner';
 
 interface Customer {
@@ -29,7 +27,6 @@ interface Customer {
 }
 
 export const CustomersListPage: React.FC = () => {
-  const { navigateTo } = useContext(AppContext);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,7 +55,7 @@ export const CustomersListPage: React.FC = () => {
       if (response.success) {
         // Handle nested response structure: response.data.customers
         const customersData = response.data?.customers || response.data || [];
-        const customersWithNames = customersData.map(customer => ({
+        const customersWithNames = customersData.map((customer: any) => ({
           ...customer,
           name: customer.firstName && customer.lastName 
             ? `${customer.firstName} ${customer.lastName}`.trim()
@@ -100,8 +97,9 @@ export const CustomersListPage: React.FC = () => {
       const response = await customersAPI.search(query);
       if (response.success) {
         // Handle response structure: response.data is array for search
-        const customersData = Array.isArray(response.data) ? response.data : response.data?.customers || [];
-        const processedCustomers = customersData.map(customer => ({
+        const responseData = response.data as any;
+        const customersData = Array.isArray(responseData) ? responseData : responseData?.customers || [];
+        const processedCustomers = customersData.map((customer: any) => ({
           ...customer,
           // Backend has 'name' field, but frontend form needs firstName/lastName
           firstName: customer.firstName || customer.name?.split(' ')[0] || '',
@@ -204,9 +202,10 @@ export const CustomersListPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error saving customer:', error);
-      if (error.message.includes('Validation failed')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Validation failed')) {
         toast.error('Please check all required fields and try again');
-      } else if (error.message.includes('already exists')) {
+      } else if (errorMessage.includes('already exists')) {
         toast.error('A customer with this phone number already exists');
       } else {
         toast.error('Failed to save customer. Please try again.');
@@ -234,20 +233,6 @@ export const CustomersListPage: React.FC = () => {
     }
   };
 
-  const getTierBadge = (tier: string) => {
-    const colors = {
-      Gold: 'bg-[#fef3c7] text-[#f59e0b] border-[#fcd34d]',
-      Silver: 'bg-[#e5e5e5] text-[#737373] border-[#d4d4d4]',
-      Bronze: 'bg-[#fed7aa] text-[#ea580c] border-[#fdba74]',
-      Regular: 'bg-[#dbeafe] text-[#3b82f6] border-[#93c5fd]',
-    };
-    return (
-      <Badge variant="secondary" className={colors[tier as keyof typeof colors]}>
-        <Star className="h-3 w-3 mr-1" />
-        {tier}
-      </Badge>
-    );
-  };
 
   return (
     <PageTemplate

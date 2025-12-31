@@ -7,6 +7,11 @@ A modern, all-in-one Point of Sale system for retail shops. Run it in your brows
 ## 🚀 How to Run the Application
 
 You don't need to be a coder to start the system. Follow these simple steps:
+npm install
+
+npm install
+cd backend && npm install
+
 
 ### 1️⃣ Open your "Command Prompt"
 

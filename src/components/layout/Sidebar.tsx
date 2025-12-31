@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -12,12 +12,14 @@ import {
   ChevronLeft,
   Menu,
   History,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { AppContext, Route } from '../../App';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import looper7Logo from '../../assets/looper7-logo-BEqfKLyj.png';
 
 interface MenuItem {
   id: string;
@@ -68,6 +70,12 @@ const menuItems: MenuItem[] = [
     route: 'customers-list'
   },
   {
+    id: 'reminders',
+    label: 'Reminders',
+    icon: Bell,
+    route: 'reminders'
+  },
+  {
     id: 'settings',
     label: 'Settings',
     icon: Settings,
@@ -79,6 +87,7 @@ export const Sidebar: React.FC = () => {
   const { currentRoute, navigateTo, sidebarCollapsed, setSidebarCollapsed } = useContext(AppContext);
   const { user, logout } = useAuth();
   const [expandedItems, setExpandedItems] = useState<string[]>(['products']);
+  const [currentDateTime, setCurrentDateTime] = useState<string>('');
 
   const handleLogout = async () => {
     try {
@@ -88,6 +97,30 @@ export const Sidebar: React.FC = () => {
       toast.error('Logout failed');
     }
   };
+
+  // Update date and time every second - syncs with system clock
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      const timeStr = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      setCurrentDateTime(`${dateStr} ${timeStr}`);
+    };
+
+    updateDateTime(); // Update immediately
+    const interval = setInterval(updateDateTime, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, []);
 
   const getUserInitials = (name: string): string => {
     return name
@@ -274,8 +307,13 @@ export const Sidebar: React.FC = () => {
           </button>
           
           {/* Looper7 Logo */}
-          <div className="flex justify-center">
-            <img src="/src/assets/looper7-logo.png" alt="LOOPER7" className="h-10 w-auto object-contain opacity-60" />
+          <div className="flex flex-col items-center gap-2">
+            <img src={looper7Logo} alt="LOOPER7" className="h-10 w-auto object-contain opacity-60" />
+            {currentDateTime && (
+              <p className="text-xs text-sidebar-foreground/60 text-center leading-tight">
+                {currentDateTime}
+              </p>
+            )}
           </div>
         </div>
       )}

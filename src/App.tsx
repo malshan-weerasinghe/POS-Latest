@@ -8,6 +8,7 @@ import { CategoriesPage } from './components/pages/CategoriesPage';
 import { SuppliersListPage } from './components/pages/SuppliersListPage';
 import { CustomersListPage } from './components/pages/CustomersListPage';
 import { ReceiptPage } from './components/pages/ReceiptPage';
+import { RemindersPage } from './components/pages/RemindersPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { LoginPage } from './components/pages/LoginPage';
 import { Toaster } from './components/ui/sonner';
@@ -22,6 +23,7 @@ export type Route =
   | 'categories'
   | 'suppliers-list'
   | 'customers-list'
+  | 'reminders'
   | 'settings';
 
 export interface AppContextType {
@@ -91,6 +93,8 @@ function AppContent() {
         return <SuppliersListPage />;
       case 'customers-list':
         return <CustomersListPage />;
+      case 'reminders':
+        return <RemindersPage />;
       case 'settings':
         return <SettingsPage />;
       default:

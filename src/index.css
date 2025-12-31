@@ -204,7 +204,6 @@
   }
 
   img, svg, video, canvas, audio, iframe, embed, object {
-    vertical-align: middle;
     display: block;
   }
 
@@ -2587,6 +2586,7 @@
   }
 
   :is(.\*\:data-\[slot\=select-value\]\:line-clamp-1 > *)[data-slot="select-value"] {
+    line-clamp: 1;
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     display: -webkit-box;
@@ -3540,4 +3540,115 @@ html {
     opacity: var(--tw-exit-opacity, 1);
     transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
   }
+}
+
+/* 3D Vertical Rotation Animation for Logo */
+@keyframes rotateY {
+  0% {
+    transform: perspective(1000px) rotateY(0deg);
+  }
+  50% {
+    transform: perspective(1000px) rotateY(180deg);
+  }
+  100% {
+    transform: perspective(1000px) rotateY(360deg);
+  }
+}
+
+.logo-3d-rotate {
+  transform-style: preserve-3d;
+  animation: rotateY 3s ease-in-out infinite;
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.logo-3d-rotate:focus,
+.logo-3d-rotate:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.logo-3d-rotate::before,
+.logo-3d-rotate::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Glassmorphism Login Form Styles */
+.form-group {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper input:focus ~ label,
+.input-wrapper input:not(:placeholder-shown) ~ label {
+  top: 0.5rem;
+  font-size: 0.75rem;
+  color: #22d3ee;
+  font-weight: 500;
+}
+
+.input-wrapper input:focus ~ .focus-border {
+  width: 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Typewriter Cursor Blink Animation */
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.typewriter-cursor {
+  animation: blink 1s infinite;
+}
+
+/* Sign In Button Styles */
+.sign-in-button {
+  background-color: white;
+  color: #003e90;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border: none;
+  border-radius: 16px;
+  transition-duration: 0.4s;
+  font-weight: 600;
+  width: auto;
+  min-width: 200px;
+}
+
+.sign-in-button:hover:not(:disabled) {
+  background-color: #38b6ff;
+  color: black;
+  border: none;
+}
+
+.sign-in-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -54,6 +54,7 @@ const customerRoutes = require('./routes/customers');
 const supplierRoutes = require('./routes/suppliers');
 const categoryRoutes = require('./routes/categories');
 const salesRoutes = require('./routes/sales');
+const reminderRoutes = require('./routes/reminders');
 console.log('[BACKEND START] All routes loaded');
 
 console.log('[BACKEND START] Creating Express app...');
@@ -135,6 +136,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/sales', salesRoutes);
+app.use('/api/reminders', reminderRoutes);
+console.log('[BACKEND START] All API routes registered, including /api/reminders');
 
 // API info endpoint
 app.get('/api', (req, res) => {
@@ -179,6 +182,14 @@ app.get('/api', (req, res) => {
         create: 'POST /api/sales',
         dashboard: 'GET /api/sales/dashboard/summary',
         reports: 'GET /api/sales/reports/by-date'
+      },
+      reminders: {
+        list: 'GET /api/reminders',
+        get: 'GET /api/reminders/:id',
+        create: 'POST /api/reminders',
+        update: 'PUT /api/reminders/:id',
+        updateStatus: 'PATCH /api/reminders/:id/status',
+        delete: 'DELETE /api/reminders/:id'
       }
     },
     documentation: 'All endpoints except /health and /api require Authorization: Bearer <token>'
@@ -319,6 +330,21 @@ const initializeDatabase = async (db) => {
         FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products(id),
         FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+      )`,
+      // Reminders table
+      `CREATE TABLE IF NOT EXISTS reminders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL CHECK(category IN ('Supplier', 'Maintenance', 'Tax', 'Staff', 'General')),
+        scheduled_date_time TEXT NOT NULL,
+        recurrence TEXT NOT NULL CHECK(recurrence IN ('None', 'Every 15 mins', 'Every 1 hour', 'Daily', 'Custom Days')),
+        custom_days INTEGER,
+        description TEXT,
+        priority TEXT NOT NULL CHECK(priority IN ('Low', 'Medium', 'High')),
+        status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Completed', 'Overdue')),
+        next_trigger TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`
     ];
 

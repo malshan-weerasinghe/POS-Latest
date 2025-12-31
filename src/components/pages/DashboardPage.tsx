@@ -1,10 +1,11 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { PageTemplate } from '../templates/PageTemplate';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, Download, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, Download, Filter, ArrowUpRight, ArrowDownRight, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AppContext } from '../../App';
+import { remindersAPI } from '../../services/api';
 
 // Mock data for charts
 const dailySalesData = [
@@ -78,13 +79,132 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, change, icon, trend }) 
   );
 };
 
+interface DueReminder {
+  id: string;
+  title: string;
+  scheduledDateTime: string;
+  priority: 'Low' | 'Medium' | 'High';
+}
+
 export const DashboardPage: React.FC = () => {
   const { navigateTo } = useContext(AppContext);
+  const [dueReminders, setDueReminders] = useState<DueReminder[]>([]);
+  const [loadingReminders, setLoadingReminders] = useState(true);
+
+  useEffect(() => {
+    loadDueReminders();
+  }, []);
+
+  const loadDueReminders = async () => {
+    try {
+      setLoadingReminders(true);
+      const response = await remindersAPI.getAll({ limit: 50 });
+      
+      if (response && response.success) {
+        const remindersData = response.data?.reminders || response.data || [];
+        
+        if (Array.isArray(remindersData)) {
+          // Filter for only pending reminders (not completed, not overdue)
+          // Sort by scheduled date/time (earliest first)
+          // Take the first 4
+          const due = remindersData
+            .filter((r: any) => r.status === 'Pending')
+            .map((r: any) => ({
+              id: r.id.toString(),
+              title: r.title,
+              scheduledDateTime: r.scheduled_date_time || r.next_trigger || r.scheduled_date_time,
+              priority: r.priority,
+            }))
+            .sort((a: DueReminder, b: DueReminder) => {
+              const dateA = new Date(a.scheduledDateTime);
+              const dateB = new Date(b.scheduledDateTime);
+              return dateA.getTime() - dateB.getTime();
+            })
+            .slice(0, 4);
+          
+          setDueReminders(due);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading due reminders:', error);
+    } finally {
+      setLoadingReminders(false);
+    }
+  };
+
+  const formatDueDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Check if it's today
+    if (date.toDateString() === today.toDateString()) {
+      return `Today, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    }
+    // Check if it's tomorrow
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    }
+    
+    // Check if overdue
+    if (date < today) {
+      return `Overdue: ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+    
+    // Future date
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const getPriorityBorderColor = (priority: 'Low' | 'Medium' | 'High') => {
+    switch (priority) {
+      case 'Low':
+        return 'border-[#10b981]'; // Green
+      case 'Medium':
+        return 'border-[#ffbd59]'; // Orange/Yellow
+      case 'High':
+        return 'border-[#ef4444]'; // Red
+      default:
+        return 'border-gray-300';
+    }
+  };
+
+  const getPriorityBorderColorValue = (priority: 'Low' | 'Medium' | 'High') => {
+    switch (priority) {
+      case 'Low':
+        return '#10b981'; // Green
+      case 'Medium':
+        return '#ffbd59'; // Orange/Yellow
+      case 'High':
+        return '#ef4444'; // Red
+      default:
+        return '#9ca3af';
+    }
+  };
+
+  const getPriorityIcon = (priority: 'Low' | 'Medium' | 'High') => {
+    switch (priority) {
+      case 'Low':
+        return <CheckCircle2 className="h-4 w-4 text-[#10b981]" />;
+      case 'Medium':
+        return <AlertCircle className="h-4 w-4 text-[#ffbd59]" />;
+      case 'High':
+        return <AlertCircle className="h-4 w-4 text-[#ef4444]" />;
+      default:
+        return <Clock className="h-4 w-4" />;
+    }
+  };
   
   return (
     <PageTemplate
       title="Dashboard"
-      subtitle="Overview of your store performance"
       actions={
         <>
           <Button variant="outline" size="sm">
@@ -99,7 +219,48 @@ export const DashboardPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
+        {/* Latest Due Reminders */}
+        {dueReminders.length > 0 && (
+          <div>
+            <h3 className="text-base font-semibold mb-4">Latest Due Reminders</h3>
+            <div className="grid grid-cols-4 gap-6">
+              {dueReminders.map((reminder) => (
+                <Card 
+                  key={reminder.id} 
+                  className={`border-2 ${getPriorityBorderColor(reminder.priority)} cursor-pointer hover:shadow-md transition-shadow`}
+                  style={{ borderColor: getPriorityBorderColorValue(reminder.priority) }}
+                  onClick={() => {
+                    sessionStorage.setItem('expandReminderId', reminder.id);
+                    navigateTo('reminders');
+                  }}
+                >
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        {getPriorityIcon(reminder.priority)}
+                        <p className="text-muted-foreground text-xs font-medium uppercase">{reminder.priority}</p>
+                      </div>
+                      <h3 className="font-semibold text-sm leading-tight">{reminder.title}</h3>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <p className="text-xs" style={{ fontSize: 'var(--text-body-s)' }}>
+                          {formatDueDate(reminder.scheduledDateTime)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Divider Line */}
+        <div className="w-full h-0.5 bg-black my-6"></div>
+
         {/* KPI Cards */}
+        <div className="w-full h-0.5 bg-black mb-6"></div>
+        <h3 className="text-base font-semibold mb-4">Overview of your store performance</h3>
         <div className="grid grid-cols-4 gap-6">
           <KPICard
             title="Today's Sales"

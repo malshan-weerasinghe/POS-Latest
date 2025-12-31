@@ -437,6 +437,52 @@ export const categoriesAPI = {
   },
 };
 
+// Reminders API
+export const remindersAPI = {
+  // Get all reminders with optional search and pagination
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/reminders?${queryString}` : '/reminders';
+    return await apiRequest(endpoint);
+  },
+
+  // Get single reminder
+  getById: async (id) => {
+    return await apiRequest(`/reminders/${id}`);
+  },
+
+  // Create reminder
+  create: async (reminderData) => {
+    return await apiRequest('/reminders', {
+      method: 'POST',
+      body: JSON.stringify(reminderData),
+    });
+  },
+
+  // Update reminder
+  update: async (id, reminderData) => {
+    return await apiRequest(`/reminders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(reminderData),
+    });
+  },
+
+  // Update reminder status
+  updateStatus: async (id, status, nextTrigger) => {
+    return await apiRequest(`/reminders/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, next_trigger: nextTrigger }),
+    });
+  },
+
+  // Delete reminder
+  delete: async (id) => {
+    return await apiRequest(`/reminders/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // API utilities
 export const apiUtils = {
   getAuthToken,
@@ -452,5 +498,6 @@ export default {
   suppliers: suppliersAPI,
   categories: categoriesAPI,
   sales: salesAPI,
+  reminders: remindersAPI,
   utils: apiUtils,
 };
